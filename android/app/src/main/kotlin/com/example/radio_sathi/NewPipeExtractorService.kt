@@ -3,26 +3,54 @@ package com.example.radio_sathi
 import android.content.Context
 import android.util.Log
 import org.schabi.newpipe.NewPipe
-import org.schabi.newpipe.extractor.NewPipeExtractor
+import org.schabi.newpipe.extractor.Downloader
 import org.schabi.newpipe.extractor.StreamingService
 import org.schabi.newpipe.extractor.services.youtube.YoutubeService
 import org.schabi.newpipe.extractor.search.SearchExtractor
+import org.schabi.newpipe.extractor.search.SearchQueryHandler
 import org.schabi.newpipe.extractor.stream.StreamInfo
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.exceptions.ExtractionException
-import org.schabi.newpipe.extractor.LinkHandler
+import org.schabi.newpipe.extractor.ListExtractor
+import org.schabi.newpipe.extractor.InfoItem
+import org.schabi.newpipe.extractor.NewPipeException
+import org.schabi.newpipe.extractor.localization.Localization
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlinx.coroutines.*
 import java.util.concurrent.Executors
 
+class SimpleDownloader : Downloader {
+    override fun download(url: String): String {
+        Log.d("Downloader", "Downloading: $url")
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.requestMethod = "GET"
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0")
+        return conn.inputStream.bufferedReader().readText()
+    }
+
+    override fun downloadWithHeaders(url: String, headers: Map<String, String>): String {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.requestMethod = "GET"
+        headers.forEach { (k, v) -> conn.setRequestProperty(k, v) }
+        return conn.inputStream.bufferedReader().readText()
+    }
+
+    override fun getProgressData(request: Downloader?): InputStream? = null
+
+    override fun deleteCookies(url: String) {}
+    override fun setCookies(url: String, cookies: List<String>) {}
+    override fun getCookies(url: String): List<String> = emptyList()
+}
+
 class NewPipeExtractorService(private val context: Context) {
     private val TAG = "NewPipeExtractor"
-    private var youtubeService: YoutubeService? = null
     private val executor = Executors.newSingleThreadExecutor()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var youtubeService: YoutubeService? = null
 
     init {
         try {
-            NewPipe.init(context)
+            NewPipe.init(SimpleDownloader(), Localization.fromCountryCode("US"))
             youtubeService = YoutubeService()
             Log.d(TAG, "NewPipe initialized successfully")
         } catch (e: Exception) {
@@ -38,32 +66,31 @@ class NewPipeExtractorService(private val context: Context) {
                     return@launch
                 }
 
-                val searchFactory = service.searchLinkHandlerFactory
-                val linkHandler = searchFactory.getIdFromQuery(query)
+                val searchQH = service.searchQHFactory.fromQuery(query)
+                val extractor = SearchExtractor(service, searchQH)
                 
-                val extractor = service.getSearchExtractor(linkHandler)
                 extractor.fetchPage()
-                extractor.page = extractor.getPage(extractor.url)
                 
-                val items = mutableListOf<Map<String, Any>>()
+                val page = extractor.initialPage
+                val items = page.items
                 
-                val relatedItems = extractor.relatedItems
-                for (item in relatedItems) {
-                    try {
-                        val streamInfoItem = item
-                        items.add(mapOf(
-                            "id" to streamInfoItem.id,
-                            "title" to (streamInfoItem.name ?: ""),
-                            "thumbnail" to (streamInfoItem.thumbnailUrl ?: ""),
-                            "url" to (streamInfoItem.url ?: ""),
-                            "duration" to 0
-                        ))
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error processing item: ${e.message}")
+                val results = mutableListOf<Map<String, Any>>()
+                
+                for (item in items) {
+                    when (item) {
+                        is org.schabi.newpipe.extractor.stream.StreamInfoItem -> {
+                            results.add(mapOf(
+                                "id" to (item.id ?: ""),
+                                "title" to (item.name ?: ""),
+                                "thumbnail" to (item.thumbnailUrl ?: ""),
+                                "url" to (item.url ?: ""),
+                                "duration" to (item.duration ?: 0)
+                            ))
+                        }
                     }
                 }
                 
-                callback("success", items)
+                callback("success", results)
             } catch (e: Exception) {
                 Log.e(TAG, "Search error: ${e.message}")
                 callback("Error: ${e.message}", emptyList())
@@ -85,8 +112,7 @@ class NewPipeExtractorService(private val context: Context) {
                 val extractor = service.getStreamExtractor(linkHandler)
                 extractor.fetchPage()
                 
-                val streamInfo = extractor.initialInformation ?: extractor as StreamInfo
-
+                val streamInfo = extractor
                 val audioStreams = streamInfo.audioStreams
                 val audioStream = audioStreams.firstOrNull()
 
