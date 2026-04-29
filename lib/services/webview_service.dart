@@ -93,7 +93,6 @@ AppLog.log('Controller is null');
   await Future.delayed(const Duration(milliseconds: 500));
 
   final normalizedSearch = channelName.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
-  final noSpaceSearch = normalizedSearch.replaceAll(' ', '');
 
   AppLog.log('Searching for channel: "$channelName", normalized: "$normalizedSearch"');
 

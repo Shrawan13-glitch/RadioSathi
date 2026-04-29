@@ -58,7 +58,7 @@ _buildSettingsTile(
   }
 
   Widget _buildSettingsTile(
-    context, {
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
