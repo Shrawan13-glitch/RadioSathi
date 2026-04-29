@@ -265,10 +265,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
     
     final videoId = video.id;
-    final streamInfo = await YouTubeService().getStreamUrl(videoId);
+    final streamUrl = await YouTubeService().getStreamUrl(videoId);
     
-    if (streamInfo != null) {
-      await _audioPlayer.setUrl(streamInfo.url);
+    if (streamUrl != null) {
+      await _audioPlayer.setUrl(streamUrl);
       await _audioPlayer.play();
       
       await _flutterTts.speak('Now playing ${video.title}');

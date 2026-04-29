@@ -1,4 +1,4 @@
-import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+import 'package:flutter/services.dart';
 import 'app_log.dart';
 
 class YouTubeResult {
@@ -15,6 +15,16 @@ class YouTubeResult {
     required this.url,
     required this.duration,
   });
+
+  factory YouTubeResult.fromMap(Map<String, dynamic> map) {
+    return YouTubeResult(
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      thumbnail: map['thumbnail'] ?? '',
+      url: map['url'] ?? '',
+      duration: map['duration'] ?? 0,
+    );
+  }
 }
 
 class StreamInfo {
@@ -30,8 +40,8 @@ class StreamInfo {
 }
 
 class YouTubeService {
+  static const _channel = MethodChannel('com.example.radio_sathi/newpipe');
   static final YouTubeService _instance = YouTubeService._internal();
-  final YoutubeExplode _yt = YoutubeExplode();
 
   factory YouTubeService() => _instance;
 
@@ -40,55 +50,33 @@ class YouTubeService {
   Future<List<YouTubeResult>> search(String query) async {
     try {
       AppLog.log('Searching YouTube for: $query');
+      final result = await _channel.invokeMethod('search', {'query': query});
       
-      final searchResults = await _yt.search(query);
-      
-      return searchResults.take(10).map((result) {
-        return YouTubeResult(
-          id: result.id.value,
-          title: result.title,
-          thumbnail: result.thumbnails.highResUrl.isNotEmpty 
-            ? result.thumbnails.highResUrl 
-            : result.thumbnails.mediumResUrl,
-          url: 'https://www.youtube.com/watch?v=${result.id.value}',
-          duration: 0,
-        );
-      }).toList();
-    } catch (e) {
-      AppLog.log('YouTube search error: $e');
+      if (result is List) {
+        return result.map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return YouTubeResult.fromMap(map);
+        }).toList();
+      }
+      return [];
+    } on PlatformException catch (e) {
+      AppLog.log('YouTube search error: ${e.message}');
       return [];
     }
   }
 
-  Future<StreamInfo?> getStreamUrl(String videoId) async {
+  Future<String?> getStreamUrl(String videoId) async {
     try {
       AppLog.log('Getting stream URL for video: $videoId');
+      final result = await _channel.invokeMethod('getStreamUrl', {'videoId': videoId});
       
-      final video = await _yt.videos.get(videoId);
-      final manifest = await _yt.videos.streams.getManifest(videoId);
-      
-      final audioStreams = manifest.audioOnly;
-      if (audioStreams.isEmpty) {
-        AppLog.log('No audio streams found');
-        return null;
+      if (result != null && result is String) {
+        return result;
       }
-      
-      final audioStream = audioStreams.withHighestBitrate();
-      
-      return StreamInfo(
-        url: audioStream.url.toString(),
-        title: video.title,
-        thumbnail: video.thumbnails.highResUrl.isNotEmpty 
-            ? video.thumbnails.highResUrl 
-            : video.thumbnails.mediumResUrl,
-      );
-    } catch (e) {
-      AppLog.log('Get stream URL error: $e');
+      return null;
+    } on PlatformException catch (e) {
+      AppLog.log('Get stream URL error: ${e.message}');
       return null;
     }
-  }
-
-  void dispose() {
-    _yt.close();
   }
 }
