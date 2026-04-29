@@ -131,6 +131,26 @@ AppLog.log('Controller is null');
     try {
       final result = await _controller!.evaluateJavascript(source: jsCode);
       AppLog.log('ClickChannel result: $result');
+      
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      final playCode = '''
+        (function() {
+          var playIcon = document.querySelector('.play-icon');
+          if (playIcon) {
+            playIcon.click();
+            return 'played';
+          }
+          return 'no_play_icon';
+        })();
+      ''';
+      
+      try {
+        final playResult = await _controller!.evaluateJavascript(source: playCode);
+        AppLog.log('Play result: $playResult');
+      } catch (e) {
+        AppLog.log('Play error: $e');
+      }
     } catch (e) {
       AppLog.log('ClickChannel error: $e');
     }
