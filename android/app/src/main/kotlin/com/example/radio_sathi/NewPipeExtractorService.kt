@@ -3,15 +3,14 @@ package com.example.radio_sathi
 import android.content.Context
 import android.util.Log
 import org.schabi.newpipe.NewPipe
-import org.schabi.newpipe.extractor.Info
-import org.schabi.newpipe.extractor.SearchEngine
+import org.schabi.newpipe.extractor.NewPipeExtractor
 import org.schabi.newpipe.extractor.StreamingService
 import org.schabi.newpipe.extractor.services.youtube.YoutubeService
-import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
-import org.schabi.newpipe.extractor.stream.Stream
+import org.schabi.newpipe.extractor.search.SearchExtractor
 import org.schabi.newpipe.extractor.stream.StreamInfo
-import org.schabi.newpipe.extractor.stream.StreamType
-import org.schabi.newpipe.extractor.*
+import org.schabi.newpipe.extractor.stream.AudioStream
+import org.schabi.newpipe.extractor.exceptions.ExtractionException
+import org.schabi.newpipe.extractor.LinkHandler
 import kotlinx.coroutines.*
 import java.util.concurrent.Executors
 
@@ -39,32 +38,26 @@ class NewPipeExtractorService(private val context: Context) {
                     return@launch
                 }
 
-                val searchFactory = service.searchQueueFactory
-                val searchQuery = searchFactory.fromQuery(query, arrayOf(YoutubeSearchQueryHandlerFactory.ITEMS))
+                val searchFactory = service.searchLinkHandlerFactory
+                val linkHandler = searchFactory.getIdFromQuery(query)
                 
-                val handler = service.searchHandler
-                val results = handler.getSearchResult(searchQuery)
+                val extractor = service.getSearchExtractor(linkHandler)
+                extractor.fetchPage()
+                extractor.page = extractor.getPage(extractor.url)
                 
                 val items = mutableListOf<Map<String, Any>>()
                 
-                for (item in results.relatedItems) {
+                val relatedItems = extractor.relatedItems
+                for (item in relatedItems) {
                     try {
-                        if (item is StreamingService.LocalItem) {
-                            val streamItem = item as? org.schabi.newpipe.extractor.stream.StreamSummary
-                            if (streamItem != null) {
-                                val thumbnail = if (streamItem.thumbnails != null && streamItem.thumbnails!!.isNotEmpty()) {
-                                    streamItem.thumbnails!![0].url
-                                } else ""
-                                
-                                items.add(mapOf(
-                                    "id" to streamItem.id,
-                                    "title" to (streamItem.name ?: ""),
-                                    "thumbnail" to thumbnail,
-                                    "url" to streamItem.url,
-                                    "duration" to (streamItem.duration ?: 0)
-                                ))
-                            }
-                        }
+                        val streamInfoItem = item
+                        items.add(mapOf(
+                            "id" to streamInfoItem.id,
+                            "title" to (streamInfoItem.name ?: ""),
+                            "thumbnail" to (streamInfoItem.thumbnailUrl ?: ""),
+                            "url" to (streamInfoItem.url ?: ""),
+                            "duration" to 0
+                        ))
                     } catch (e: Exception) {
                         Log.e(TAG, "Error processing item: ${e.message}")
                     }
@@ -86,26 +79,21 @@ class NewPipeExtractorService(private val context: Context) {
                     return@launch
                 }
 
-                val extractor = service.getStreamExtractor("https://www.youtube.com/watch?v=$videoId")
-                extractor.fetchPage()
-                val streamInfo = extractor.apply {
-                    StreamInfo.getInfo(this)
-                }
-
-                val audioStream = streamInfo.audioStreams
-                    .filter { it.format == Stream.Format.MPEG }
-                    .minByOrNull { it.bitrate }
-
-                val bestStream = streamInfo.streams
-                    .filter { it.streamType == StreamType.AUDIO }
-                    .maxByOrNull { it.bitrate }
-
-                val streamUrl = audioStream?.url ?: bestStream?.url
+                val linkHandlerFactory = service.linkHandlerFactory
+                val linkHandler = linkHandlerFactory.fromId(videoId)
                 
-                if (streamUrl != null) {
-                    val title = streamInfo.title
-                    val thumbnail = if (streamInfo.thumbnails.isNotEmpty()) streamInfo.thumbnails[0].url else ""
-                    val result = "$streamUrl|$title|$thumbnail"
+                val extractor = service.getStreamExtractor(linkHandler)
+                extractor.fetchPage()
+                
+                val streamInfo = extractor.initialInformation ?: extractor as StreamInfo
+
+                val audioStreams = streamInfo.audioStreams
+                val audioStream = audioStreams.firstOrNull()
+
+                if (audioStream != null) {
+                    val title = streamInfo.name
+                    val thumbnail = streamInfo.thumbnailUrl ?: ""
+                    val result = "${audioStream.url}|$title|$thumbnail"
                     callback("success", result)
                 } else {
                     callback("Error: No audio stream found", null)
