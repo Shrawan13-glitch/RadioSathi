@@ -39,11 +39,22 @@ class ExtractorCatalog(
         val url = "https://www.youtube.com/watch?v=$videoId"
         val info = StreamInfo.getInfo(service, url)
         
-        val audioStream = info.audioStreams
+        // First try direct audio streams (not HLS)
+        val directAudioStream = info.audioStreams
             .filter { it.isUrl && it.deliveryMethod != org.schabi.newpipe.extractor.stream.DeliveryMethod.HLS }
             .maxByOrNull { maxOf(it.bitrate, it.averageBitrate) }
-            ?: info.audioStreams.maxByOrNull { maxOf(it.bitrate, it.averageBitrate) }
         
-        return audioStream?.url
+        if (directAudioStream != null) {
+            return directAudioStream.url
+        }
+        
+        // Fallback to any audio stream
+        val anyAudioStream = info.audioStreams.maxByOrNull { maxOf(it.bitrate, it.averageBitrate) }
+        if (anyAudioStream != null) {
+            return anyAudioStream.url
+        }
+        
+        // Last fallback: try HLS URL
+        return info.hlsUrl
     }
 }
