@@ -38,22 +38,20 @@ class WebViewService {
 
     final jsCode = '''
       (function() {
-        var found = false;
-        var elements = document.querySelectorAll('a, button, li, div, span, p, td, tr, table');
-        for (var i = 0; i < elements.length; i++) {
-          var el = elements[i];
-          var text = el.textContent || el.innerText || '';
-          if (text) {
+        var channels = document.querySelectorAll('.selectchannel');
+        for (var i = 0; i < channels.length; i++) {
+          var channelDiv = channels[i].querySelector('.channel-name');
+          if (channelDiv) {
+            var text = channelDiv.textContent || channelDiv.innerText || '';
             var normalizedText = text.replace(/\\s+/g, ' ').trim().toLowerCase();
             var noSpaceText = normalizedText.replaceAll(' ', '');
             
             if (normalizedText.includes('$normalizedSearch') || 
                 noSpaceText.includes('$noSpaceSearch') ||
                 '$normalizedSearch'.includes(normalizedText)) {
-              debug.log('Found element: ' + text.substring(0, 50));
-              el.click();
-              found = true;
-              return 'clicked:' + text.substring(0, 30);
+              debug.log('Found channel: ' + text);
+              channels[i].click();
+              return 'clicked:' + text;
             }
           }
         }
@@ -70,11 +68,13 @@ class WebViewService {
 
     final jsCode = '''
       (function() {
-        var playButton = document.querySelector('.play-pause-btn, #playBtn, .play-button, button.play, [class*="play-pause"], [id*="play"]');
-        if (playButton) {
-          playButton.click();
-          return 'clicked';
+        var playIcon = document.querySelector('.play-icon');
+        if (playIcon) {
+          playIcon.click();
+          var isPlaying = playIcon.classList.contains('icon-pause') || !playIcon.classList.contains('icon-play');
+          return isPlaying ? 'playing' : 'paused';
         }
+        
         var audio = document.querySelector('audio');
         if (audio) {
           if (audio.paused) {
