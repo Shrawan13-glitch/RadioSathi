@@ -29,7 +29,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _initSpeech() async {
-    _speechEnabled = await _speechToText.initialize();
+    _speechEnabled = await _speechToText.initialize(
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          setState(() {
+            _isListening = false;
+          });
+        }
+      },
+    );
     setState(() {});
   }
 
@@ -42,6 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _startListening() async {
     if (_speechEnabled) {
+      setState(() {
+        _recognizedText = '';
+      });
       await _speechToText.listen(
         onResult: (result) {
           setState(() {
@@ -73,6 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (command != null) {
       await _flutterTts.speak('Playing ${command.channelName}');
       await WebViewService.clickChannel(command.channelName);
+      setState(() {
+        _recognizedText = '';
+      });
     }
   }
 
@@ -232,18 +246,43 @@ class _HomeScreenState extends State<HomeScreen> {
                 opacity: _isWebViewVisible ? 1.0 : 0.0,
                 child: Container(
                   color: Colors.white,
-                  child: InAppWebView(
-                    initialUrlRequest: URLRequest(
-                      url: WebUri(WebViewService.currentUrl),
-                    ),
-                    onWebViewCreated: (controller) {
-                      WebViewService.setController(controller);
-                    },
-                    initialSettings: InAppWebViewSettings(
-                      useWideViewPort: true,
-                      javaScriptEnabled: true,
-                      hidesTopBar: true,
-                    ),
+                  child: Stack(
+                    children: [
+                      InAppWebView(
+                        initialUrlRequest: URLRequest(
+                          url: WebUri(WebViewService.currentUrl),
+                        ),
+                        onWebViewCreated: (controller) {
+                          WebViewService.setController(controller);
+                        },
+                        initialSettings: InAppWebViewSettings(
+                          useWideViewPort: true,
+                          javaScriptEnabled: true,
+                        ),
+                      ),
+                      if (_isWebViewVisible)
+                        Positioned(
+                          top: 40,
+                          right: 10,
+                          child: SafeArea(
+                            child: GestureDetector(
+                              onTap: _toggleWebView,
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
