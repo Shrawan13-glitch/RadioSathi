@@ -225,24 +225,30 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
             ],
           ),
-          if (_isWebViewVisible)
-            Positioned.fill(
-              child: Container(
-                color: Colors.white,
-                child: InAppWebView(
-                  initialUrlRequest: URLRequest(
-                    url: WebUri(WebViewService.currentUrl),
-                  ),
-                  onWebViewCreated: (controller) {
-                    WebViewService.setController(controller);
-                  },
-                  initialSettings: InAppWebViewSettings(
-                    useWideViewPort: true,
-                    javaScriptEnabled: true,
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: !_isWebViewVisible,
+              child: Opacity(
+                opacity: _isWebViewVisible ? 1.0 : 0.0,
+                child: Container(
+                  color: Colors.white,
+                  child: InAppWebView(
+                    initialUrlRequest: URLRequest(
+                      url: WebUri(WebViewService.currentUrl),
+                    ),
+                    onWebViewCreated: (controller) {
+                      WebViewService.setController(controller);
+                    },
+                    initialSettings: InAppWebViewSettings(
+                      useWideViewPort: true,
+                      javaScriptEnabled: true,
+                      hidesTopBar: true,
+                    ),
                   ),
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
