@@ -83,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final command = HiveService.findCommandByStartCommand(spokenText);
     if (command != null) {
       await _flutterTts.speak('Playing ${command.channelName}');
+      debugPrint('Executing command for: ${command.channelName}');
       await WebViewService.clickChannel(command.channelName);
       setState(() {
         _recognizedText = '';
