@@ -44,6 +44,4 @@ flutter {
 }
 
 dependencies {
-    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.26.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
