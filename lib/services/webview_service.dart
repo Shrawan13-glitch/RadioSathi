@@ -23,6 +23,30 @@ class WebViewService {
     AppLog.log('WebView page loaded: $loaded');
   }
 
+  static Future<void> warmUpWebView() async {
+    if (_controller == null) return;
+    
+    AppLog.log('Warming up WebView...');
+    
+    final jsCode = '''
+      (function() {
+        var channels = document.querySelectorAll('.selectchannel');
+        if (channels.length > 0) {
+          channels[0].click();
+          return 'warmed';
+        }
+        return 'no_channels';
+      })();
+    ''';
+    
+    try {
+      final result = await _controller!.evaluateJavascript(source: jsCode);
+      AppLog.log('WarmUp result: $result');
+    } catch (e) {
+      AppLog.log('WarmUp error: $e');
+    }
+  }
+
   static Future<void> fetchChannelNames() async {
     if (_controller == null) {
       AppLog.log('Cannot fetch channels: controller null');

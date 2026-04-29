@@ -254,15 +254,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         initialUrlRequest: URLRequest(
                           url: WebUri(WebViewService.currentUrl),
                         ),
-                        onWebViewCreated: (controller) {
-                          WebViewService.setController(controller);
-                        },
-                        onLoadStart: (controller, url) {
-                          WebViewService.setPageLoaded(false);
-                        },
-                        onLoadStop: (controller, url) {
-                          WebViewService.setPageLoaded(true);
-                        },
+onWebViewCreated: (controller) {
+                      WebViewService.setController(controller);
+                      Future.delayed(const Duration(seconds: 2), () {
+                        WebViewService.warmUpWebView();
+                      });
+                    },
+                    onLoadStop: (controller, url) {
+                      WebViewService.setPageLoaded(true);
+                    },
                         initialSettings: InAppWebViewSettings(
                           useWideViewPort: true,
                           javaScriptEnabled: true,
