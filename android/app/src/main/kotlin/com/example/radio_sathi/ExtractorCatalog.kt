@@ -24,8 +24,9 @@ class ExtractorCatalog(
         return info.relatedItems
             .filterIsInstance<org.schabi.newpipe.extractor.stream.StreamInfoItem>()
             .map { item ->
+                val videoId = item.url.substringAfter("v=").substringBefore("&")
                 mapOf(
-                    "id" to item.id,
+                    "id" to videoId,
                     "title" to item.name,
                     "thumbnail" to (item.thumbnails.firstOrNull()?.url ?: ""),
                     "url" to item.url,
