@@ -111,17 +111,22 @@ AppLog.log('Controller is null');
           
           if (text.includes(search) || search.includes(text) || 
               noSpaceText.includes(noSpaceSearch) || noSpaceSearch.includes(noSpaceText)) {
-            channels[i].click();
+            
+            var channelId = channels[i].getAttribute('data-channel');
+            if (channelId) {
+              window.channel = channelId;
+              window.air_radio_pause();
+              window.air_radio_play();
+              return 'played:' + nameEl.textContent;
+            }
+            
+            var event = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            });
+            channels[i].dispatchEvent(event);
             return 'clicked:' + nameEl.textContent;
-          }
-        }
-        
-        var allDivs = document.querySelectorAll('div, li');
-        for (var i = 0; i < allDivs.length; i++) {
-          var text = (allDivs[i].textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
-          if (text === search || text.includes(search)) {
-            allDivs[i].click();
-            return 'clicked';
           }
         }
         return 'not_found';
@@ -131,26 +136,6 @@ AppLog.log('Controller is null');
     try {
       final result = await _controller!.evaluateJavascript(source: jsCode);
       AppLog.log('ClickChannel result: $result');
-      
-      await Future.delayed(const Duration(milliseconds: 300));
-      
-      final playCode = '''
-        (function() {
-          var playIcon = document.querySelector('.play-icon');
-          if (playIcon) {
-            playIcon.click();
-            return 'played';
-          }
-          return 'no_play_icon';
-        })();
-      ''';
-      
-      try {
-        final playResult = await _controller!.evaluateJavascript(source: playCode);
-        AppLog.log('Play result: $playResult');
-      } catch (e) {
-        AppLog.log('Play error: $e');
-      }
     } catch (e) {
       AppLog.log('ClickChannel error: $e');
     }
