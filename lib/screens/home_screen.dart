@@ -255,6 +255,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         onWebViewCreated: (controller) {
                           WebViewService.setController(controller);
                         },
+                        onLoadStart: (controller, url) {
+                          WebViewService.setPageLoaded(false);
+                        },
+                        onLoadStop: (controller, url) {
+                          WebViewService.setPageLoaded(true);
+                        },
                         initialSettings: InAppWebViewSettings(
                           useWideViewPort: true,
                           javaScriptEnabled: true,
