@@ -54,6 +54,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<YouTubeItem> _searchResults = [];
   YouTubeItem? _currentVideo;
   bool _isYouTubePlaying = false;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  bool _isLiveStream = false;
 
   final Color _radioBackground = const Color(0xFF1A1A2E);
   final Color _radioAppBar = const Color(0xFF16213E);
@@ -71,6 +74,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _initAnimation();
     _initSpeech();
     _initTts();
+    _initAudioPlayerListeners();
+  }
+
+  void _initAudioPlayerListeners() {
+    _audioPlayer.positionStream.listen((position) {
+      if (mounted) {
+        setState(() {
+          _position = position ?? Duration.zero;
+        });
+      }
+    });
+
+    _audioPlayer.durationStream.listen((duration) {
+      if (mounted) {
+        setState(() {
+          _duration = duration ?? Duration.zero;
+        });
+      }
+    });
   }
 
   void _initAnimation() {
@@ -271,11 +293,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       await _audioPlayer.setUrl(streamUrl);
       await _audioPlayer.play();
       
+      final isLive = streamUrl.contains('.m3u8');
+      
       await _flutterTts.speak('Now playing ${video.title}');
       
       setState(() {
         _isLoadingStream = false;
         _isYouTubePlaying = true;
+        _isLiveStream = isLive;
+        if (!isLive) {
+          _position = Duration.zero;
+          _duration = Duration.zero;
+        }
       });
     } else {
       setState(() {
@@ -647,60 +676,151 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildYouTubeControls() {
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        GestureDetector(
-          onTap: _playPreviousVideo,
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: _containerColor,
-              shape: BoxShape.circle,
+        if (_isLiveStream)
+          _buildLiveIndicator()
+        else
+          _buildProgressBar(),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            GestureDetector(
+              onTap: _playPreviousVideo,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: _containerColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.skip_previous,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
             ),
-            child: const Icon(
-              Icons.skip_previous,
-              color: Colors.white,
-              size: 28,
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: _toggleYouTubePlayPause,
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: _accentColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isYouTubePlaying ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                  size: 35,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: _playNextVideo,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: _containerColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.skip_next,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProgressBar() {
+    final progress = _duration.inMilliseconds > 0 
+        ? _position.inMilliseconds / _duration.inMilliseconds 
+        : 0.0;
+    
+    return Column(
+      children: [
+        SizedBox(
+          width: 250,
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+              activeTrackColor: _accentColor,
+              inactiveTrackColor: Colors.white24,
+              thumbColor: _accentColor,
+            ),
+            child: Slider(
+              value: progress.clamp(0.0, 1.0),
+              onChanged: (value) {
+                final newPosition = Duration(
+                  milliseconds: (value * _duration.inMilliseconds).round(),
+                );
+                _audioPlayer.seek(newPosition);
+              },
             ),
           ),
         ),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: _toggleYouTubePlayPause,
-          child: Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: _accentColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _isYouTubePlaying ? Icons.pause : Icons.play_arrow,
-              color: Colors.white,
-              size: 35,
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: _playNextVideo,
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: _containerColor,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.skip_next,
-              color: Colors.white,
-              size: 28,
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _formatDuration(_position),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              Text(
+                _formatDuration(_duration),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildLiveIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.red, width: 1),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.fiber_manual_record, color: Colors.red, size: 12),
+          SizedBox(width: 8),
+          Text(
+            'LIVE',
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   Widget _buildWebViewOverlay() {
