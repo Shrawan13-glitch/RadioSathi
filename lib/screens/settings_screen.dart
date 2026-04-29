@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'commands_screen.dart';
+import 'logs_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -27,25 +28,37 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildSettingsTile(
-            context,
-            icon: Icons.keyboard_voice,
-            title: 'Commands',
-            subtitle: 'Manage voice commands',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CommandsScreen()),
-              );
-            },
-          ),
+_buildSettingsTile(
+    context,
+    icon: Icons.keyboard_voice,
+    title: 'Commands',
+    subtitle: 'Manage voice commands',
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const CommandsScreen()),
+      );
+    },
+  ),
+  _buildSettingsTile(
+    context,
+    icon: Icons.bug_report,
+    title: 'Debug Logs',
+    subtitle: 'View app debug logs',
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LogsScreen()),
+      );
+    },
+  ),
         ],
       ),
     );
   }
 
   Widget _buildSettingsTile(
-    BuildContext context, {
+    context, {
     required IconData icon,
     required String title,
     required String subtitle,

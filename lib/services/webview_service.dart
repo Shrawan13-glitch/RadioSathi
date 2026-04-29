@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'app_log.dart';
 
 class WebViewService {
   static InAppWebViewController? _controller;
@@ -20,12 +20,12 @@ class WebViewService {
 
   static void setPageLoaded(bool loaded) {
     _isPageLoaded = loaded;
-    debugPrint('WebView page loaded: $loaded');
+    AppLog.log('WebView page loaded: $loaded');
   }
 
   static Future<void> fetchChannelNames() async {
     if (_controller == null) {
-      debugPrint('Controller is null, cannot fetch channels');
+      AppLog.log('Cannot fetch channels: controller null');
       return;
     }
 
@@ -49,29 +49,29 @@ class WebViewService {
       final result = await _controller!.evaluateJavascript(source: jsCode);
       if (result != null && result.isNotEmpty) {
         _channelNames = List<String>.from(jsonDecode(result));
-        debugPrint('Fetched ${_channelNames.length} channels');
+        AppLog.log('Fetched ${_channelNames.length} channels');
       }
     } catch (e) {
-      debugPrint('Error fetching channels: $e');
+      AppLog.log('Error fetching channels: $e');
     }
   }
 
   static Future<void> clickChannel(String channelName) async {
     if (_controller == null) {
-      debugPrint('Controller is null');
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (_controller == null) {
-        debugPrint('Still null, returning');
-        return;
-      }
-    }
-
+AppLog.log('Controller is null');
     await Future.delayed(const Duration(milliseconds: 500));
+    if (_controller == null) {
+      AppLog.log('Still null, returning');
+      return;
+    }
+  }
 
-    final normalizedSearch = channelName.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
-    final noSpaceSearch = normalizedSearch.replaceAll(' ', '');
+  await Future.delayed(const Duration(milliseconds: 500));
 
-    debugPrint('Searching for channel: "$channelName", normalized: "$normalizedSearch"');
+  final normalizedSearch = channelName.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  final noSpaceSearch = normalizedSearch.replaceAll(' ', '');
+
+  AppLog.log('Searching for channel: "$channelName", normalized: "$normalizedSearch"');
 
     final jsCode = '''
       (function() {
@@ -106,9 +106,9 @@ class WebViewService {
 
     try {
       final result = await _controller!.evaluateJavascript(source: jsCode);
-      debugPrint('ClickChannel result: $result');
+      AppLog.log('ClickChannel result: $result');
     } catch (e) {
-      debugPrint('ClickChannel error: $e');
+      AppLog.log('ClickChannel error: $e');
     }
   }
 
@@ -139,7 +139,7 @@ class WebViewService {
 
     final result = await _controller!.evaluateJavascript(source: jsCode);
     _isPlaying = result == 'playing';
-    debugPrint('TogglePlayPause result: $result, isPlaying: $_isPlaying');
+    AppLog.log('TogglePlayPause result: $result, isPlaying: $_isPlaying');
   }
 
   static Future<void> checkPlayingState() async {
@@ -157,6 +157,6 @@ class WebViewService {
 
     final result = await _controller!.evaluateJavascript(source: jsCode);
     _isPlaying = result == true;
-    debugPrint('CheckPlayingState result: $result, isPlaying: $_isPlaying');
+    AppLog.log('CheckPlayingState result: $result, isPlaying: $_isPlaying');
   }
 }

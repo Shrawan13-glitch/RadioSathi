@@ -4,6 +4,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../services/hive_service.dart';
 import '../services/webview_service.dart';
+import '../services/app_log.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -83,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final command = HiveService.findCommandByStartCommand(spokenText);
     if (command != null) {
       await _flutterTts.speak('Playing ${command.channelName}');
-      debugPrint('Executing command for: ${command.channelName}');
+      AppLog.log('Executing command for: ${command.channelName}');
       await WebViewService.clickChannel(command.channelName);
       setState(() {
         _recognizedText = '';
