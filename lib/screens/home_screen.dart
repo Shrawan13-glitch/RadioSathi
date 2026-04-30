@@ -325,7 +325,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return;
     }
     
-    if (lowerText.contains('radio on') || lowerText.contains('akashwani on') || lowerText.contains('radio mode')) {
+    if (lowerText.contains('radio on') || lowerText.contains('akashwani on') || lowerText.contains('akashvani on') || lowerText.contains('radio mode')) {
       _switchToRadioMode();
       return;
     }
