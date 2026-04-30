@@ -388,6 +388,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {});
   }
 
+  double _currentVolume = 1.0;
+
+  Future<void> _adjustVolume(int direction) async {
+    _currentVolume = (_currentVolume + (direction * 0.1)).clamp(0.0, 1.0);
+    if (_currentMode == AppMode.youtube) {
+      await _audioPlayer.setVolume(_currentVolume);
+    } else {
+      await _flutterTts.setVolume(_currentVolume);
+    }
+    _ttsService.speak(_currentVolume > 0.5 ? 'वolume वाढवले' : 'वolume कमी केले');
+  }
+
   Color get _backgroundColor => _backgroundColorAnimation.value ?? _radioBackground;
   Color get _appBarColor => _appBarColorAnimation.value ?? _radioAppBar;
   Color get _containerColor => _containerColorAnimation.value ?? _radioContainer;
@@ -649,12 +661,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildControlButtons() {
+Widget _buildControlButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         GestureDetector(
           onTap: _isListening ? _stopListening : _startListening,
+          onDoubleTap: _isListening ? _stopListening : _startListening,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: _isListening ? 100 : 80,
@@ -672,6 +685,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ],
             ),
+
             child: Icon(
               _isListening ? Icons.stop : Icons.mic,
               color: Colors.white,
@@ -698,6 +712,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
         ],
+        const SizedBox(width: 20),
+        GestureDetector(
+          onTap: () => _adjustVolume(1),
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.blueGrey,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.volume_up,
+              color: Colors.white,
+              size: 25,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        GestureDetector(
+          onTap: () => _adjustVolume(-1),
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.blueGrey,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.volume_down,
+              color: Colors.white,
+              size: 25,
+            ),
+          ),
+        ),
         if (_currentMode == AppMode.youtube && _currentVideo != null) ...[
           const SizedBox(width: 40),
           _buildYouTubeControls(),
