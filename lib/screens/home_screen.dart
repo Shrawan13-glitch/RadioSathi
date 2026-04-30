@@ -97,6 +97,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  bool _autoPlayEnabled = true;
+
+  void _checkAutoPlay(Duration? position) {
+    if (!_autoPlayEnabled) return;
+    if (_searchResults.isEmpty) return;
+    if (_currentMode != AppMode.youtube) return;
+    if (!_isYouTubePlaying) return;
+    
+    final currentIndex = _searchResults.indexWhere((v) => v.id == _currentVideo?.id);
+    if (currentIndex >= 0 && currentIndex < _searchResults.length - 1) {
+      if (position != null && _duration.inSeconds > 0) {
+        final remaining = _duration.inSeconds - position.inSeconds;
+        if (remaining < 5 && remaining > 0) {
+          _playNextVideo();
+        }
+      }
+    }
+  }
+
   void _initAudioPlayerListeners() {
     _audioPlayer.positionStream.listen((position) {
       if (mounted) {
@@ -104,6 +123,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _position = position ?? Duration.zero;
         });
       }
+      _checkAutoPlay(position);
     });
 
     _audioPlayer.durationStream.listen((duration) {
