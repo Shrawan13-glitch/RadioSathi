@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:just_audio/just_audio.dart';
 import '../services/hive_service.dart';
 import '../services/webview_service.dart';
 import '../models/command.dart';
@@ -43,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final AudioPlayerService _audioPlayer = AudioPlayerService();
   final TtsService _ttsService = TtsService();
   final RecentlyPlayedService _recentService = RecentlyPlayedService();
+  final AudioPlayer _beepPlayer = AudioPlayer();
   int _recentIndex = 0;
   
   bool _speechEnabled = false;
@@ -287,6 +289,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _startListening() async {
     if (_speechEnabled) {
+      await _playBeep(1);
+      if (_currentMode == AppMode.youtube && _isYouTubePlaying) {
+        await _audioPlayer.pause();
+      }
       setState(() {
         _recognizedText = '';
       });
@@ -311,9 +317,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _stopListening() async {
     await _speechToText.stop();
+    await _playBeep(2);
     setState(() {
       _isListening = false;
     });
+  }
+
+  Future<void> _playBeep(int count) async {
+    final asset = count == 1 ? 'assets/beep.mp3' : 'assets/beep_double.mp3';
+    await _beepPlayer.setAsset(asset);
+    await _beepPlayer.seek(Duration.zero);
+    await _beepPlayer.play();
   }
 
   void _checkCommand(String spokenText) async {
@@ -496,6 +510,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _speechToText.cancel();
     _flutterTts.stop();
     _audioPlayer.dispose();
+    _beepPlayer.dispose();
     super.dispose();
   }
 
