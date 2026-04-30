@@ -14,7 +14,7 @@ import '../services/recently_played_service.dart';
 import '../services/caregiver_settings_service.dart';
 import 'settings_screen.dart';
 
-enum AppMode { radio, youtube, command }
+enum AppMode { command, youtube, }
 
 class YouTubeItem {
   final String id;
@@ -50,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isListening = false;
   bool _isWebViewVisible = false;
   
-  AppMode _currentMode = AppMode.radio;
+  AppMode _currentMode = AppMode.command;
   late AnimationController _modeAnimationController;
   late Animation<Color?> _backgroundColorAnimation;
   late Animation<Color?> _appBarColorAnimation;
@@ -66,10 +66,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Duration _duration = Duration.zero;
   bool _isLiveStream = false;
 
-  final Color _radioBackground = const Color(0xFF1A1A2E);
-  final Color _radioAppBar = const Color(0xFF16213E);
-  final Color _radioContainer = const Color(0xFF16213E);
-  final Color _radioAccent = Colors.deepPurple;
+  final Color _commandBackground = const Color(0xFF1A1A2E);
+  final Color _commandAppBar = const Color(0xFF16213E);
+  final Color _commandContainer = const Color(0xFF16213E);
+  final Color _commandAccent = Colors.deepPurple;
 
   final Color _youtubeBackground = const Color(0xFF1A1A1A);
   final Color _youtubeAppBar = const Color(0xFF212121);
@@ -133,6 +133,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         });
       }
     });
+
+    _audioPlayer.playerStateStream.listen((state) {
+      if (mounted) {
+        setState(() {
+          _isYouTubePlaying = state.playing;
+        });
+      }
+    });
   }
 
   void _initAnimation() {
@@ -142,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
     
     _backgroundColorAnimation = ColorTween(
-      begin: _radioBackground,
+      begin: _commandBackground,
       end: _youtubeBackground,
     ).animate(CurvedAnimation(
       parent: _modeAnimationController,
@@ -150,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ));
     
     _appBarColorAnimation = ColorTween(
-      begin: _radioAppBar,
+      begin: _commandAppBar,
       end: _youtubeAppBar,
     ).animate(CurvedAnimation(
       parent: _modeAnimationController,
@@ -158,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ));
     
     _containerColorAnimation = ColorTween(
-      begin: _radioContainer,
+      begin: _commandContainer,
       end: _youtubeContainer,
     ).animate(CurvedAnimation(
       parent: _modeAnimationController,
@@ -166,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ));
     
     _accentColorAnimation = ColorTween(
-      begin: _radioAccent,
+      begin: _commandAccent,
       end: _youtubeAccent,
     ).animate(CurvedAnimation(
       parent: _modeAnimationController,
@@ -182,24 +190,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _modeAnimationController.forward();
   }
 
-  void _switchToRadioMode() async {
-    await _audioPlayer.pause();
-    await _flutterTts.speak('Radio mode activated');
+  void _switchToCommandMode() async {
+    await _flutterTts.speak('Command mode activated. Say a command.');
     setState(() {
-      _currentMode = AppMode.radio;
+      _currentMode = AppMode.command;
       _currentVideo = null;
       _isYouTubePlaying = false;
       _searchResults = [];
     });
     _modeAnimationController.reverse();
-  }
-
-  void _switchToCommandMode() async {
-    await _flutterTts.speak('Command mode activated. Say a command.');
-    setState(() {
-      _currentMode = AppMode.command;
-      _isYouTubePlaying = false;
-    });
   }
 
   void _handleCommandModeCommand(String spokenText) async {
@@ -325,12 +324,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return;
     }
     
-    if (lowerText.contains('radio on') || lowerText.contains('akashwani on') || lowerText.contains('akashvani on') || lowerText.contains('radio mode')) {
-      _switchToRadioMode();
-      return;
-    }
-
-    if (lowerText.contains('command mode') || lowerText.contains('कमांड मोड')) {
+    if (lowerText.contains('command mode') || lowerText.contains('कमांड मोड') || lowerText.contains('radio mode')) {
       _switchToCommandMode();
       return;
     }
@@ -491,10 +485,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _ttsService.speak(_currentVolume > 0.5 ? 'वolume वाढवले' : 'वolume कमी केले');
   }
 
-  Color get _backgroundColor => _backgroundColorAnimation.value ?? _radioBackground;
-  Color get _appBarColor => _appBarColorAnimation.value ?? _radioAppBar;
-  Color get _containerColor => _containerColorAnimation.value ?? _radioContainer;
-  Color get _accentColor => _accentColorAnimation.value ?? _radioAccent;
+  Color get _backgroundColor => _backgroundColorAnimation.value ?? _commandBackground;
+  Color get _appBarColor => _appBarColorAnimation.value ?? _commandAppBar;
+  Color get _containerColor => _containerColorAnimation.value ?? _commandContainer;
+  Color get _accentColor => _accentColorAnimation.value ?? _commandAccent;
 
   @override
   void dispose() {
@@ -524,8 +518,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 40),
                   Expanded(
-                    child: _currentMode == AppMode.radio 
-                        ? _buildRadioContent()
+                    child: _currentMode == AppMode.command 
+                        ? _buildCommandContent()
                         : _buildYouTubeContent(),
                   ),
                   const SizedBox(height: 40),
@@ -552,13 +546,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              _currentMode == AppMode.radio ? Icons.radio : Icons.play_circle_fill,
+              _currentMode == AppMode.command ? Icons.mic : Icons.play_circle_fill,
               color: _accentColor,
               key: ValueKey(_currentMode),
             ),
             const SizedBox(width: 8),
             Text(
-              _currentMode == AppMode.radio ? 'Radio Sathi' : 'YouTube',
+              _currentMode == AppMode.command ? 'Radio Sathi' : 'YouTube',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -591,7 +585,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildRadioContent() {
+  Widget _buildCommandContent() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
@@ -784,25 +778,6 @@ Widget _buildControlButtons() {
             ),
           ),
         ),
-        if (_currentMode == AppMode.radio) ...[
-          const SizedBox(width: 40),
-          GestureDetector(
-            onTap: _togglePlayPause,
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.play_arrow,
-                color: Colors.white,
-                size: 35,
-              ),
-            ),
-          ),
-        ],
         const SizedBox(width: 20),
         GestureDetector(
           onTap: () => _adjustVolume(1),
@@ -990,7 +965,7 @@ Widget _buildControlButtons() {
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   Widget _buildWebViewOverlay() {
