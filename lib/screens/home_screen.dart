@@ -4,6 +4,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../services/hive_service.dart';
 import '../services/webview_service.dart';
+import '../models/command.dart';
 import '../services/youtube_service.dart';
 import '../services/audio_player_service.dart';
 import '../services/app_log.dart';
@@ -13,7 +14,7 @@ import '../services/recently_played_service.dart';
 import '../services/caregiver_settings_service.dart';
 import 'settings_screen.dart';
 
-enum AppMode { radio, youtube }
+enum AppMode { radio, youtube, command }
 
 class YouTubeItem {
   final String id;
@@ -173,6 +174,66 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _modeAnimationController.reverse();
   }
 
+  void _switchToCommandMode() async {
+    await _flutterTts.speak('Command mode activated. Say a command.');
+    setState(() {
+      _currentMode = AppMode.command;
+      _isYouTubePlaying = false;
+    });
+  }
+
+  void _handleCommandModeCommand(String spokenText) async {
+    final command = HiveService.findCommandByStartCommand(spokenText);
+    if (command != null) {
+      await _executeCommand(command);
+    } else {
+      await _flutterTts.speak('Command not found. Say again.');
+    }
+  }
+
+  Future<void> _executeCommand(Command command) async {
+    switch (command.action) {
+      case 'Aakashwani':
+        await _flutterTts.speak('Playing ${command.channelName}');
+        await WebViewService.clickChannel(command.channelName);
+        break;
+      case 'YouTube Search':
+        if (command.youtubeQuery != null && command.youtubeQuery!.isNotEmpty) {
+          await _searchYouTube(command.youtubeQuery!);
+        }
+        break;
+      case 'YouTube Play Link':
+        if (command.youtubeLink != null && command.youtubeLink!.isNotEmpty) {
+          await _playYouTubeLink(command.youtubeLink!);
+        }
+        break;
+      default:
+        await WebViewService.clickChannel(command.channelName);
+    }
+    setState(() {
+      _recognizedText = '';
+    });
+  }
+
+  Future<void> _playYouTubeLink(String link) async {
+    final videos = await YouTubeService().getVideosFromLink(link);
+    if (videos.isNotEmpty) {
+      setState(() {
+        _searchResults = videos.map((v) => YouTubeItem(
+          id: v.id,
+          title: v.title,
+          thumbnail: v.thumbnail,
+          url: v.url,
+        )).toList();
+      });
+      if (_searchResults.isNotEmpty) {
+        await _playVideo(_searchResults.first);
+      }
+    } else {
+      await _flutterTts.speak('Could not load link');
+    }
+  }
+
   void _initSpeech() async {
     _speechEnabled = await _speechToText.initialize(
       onStatus: (status) {
@@ -246,6 +307,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     
     if (lowerText.contains('radio on') || lowerText.contains('akashwani on') || lowerText.contains('radio mode')) {
       _switchToRadioMode();
+      return;
+    }
+
+    if (lowerText.contains('command mode') || lowerText.contains('कमांड मोड')) {
+      _switchToCommandMode();
+      return;
+    }
+
+    if (_currentMode == AppMode.command) {
+      _handleCommandModeCommand(spokenText);
       return;
     }
 
