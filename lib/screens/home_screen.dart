@@ -543,7 +543,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         return Scaffold(
           backgroundColor: _backgroundColor,
           body: GestureDetector(
-            onDoubleTap: _isListening ? _stopListening : _startListening,
+            behavior: HitTestBehavior.opaque,
+            onDoubleTap: _startListening,
             onLongPress: _toggleMediaPauseResume,
             child: Stack(
               children: [
@@ -552,7 +553,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _buildAppBar(),
                     const SizedBox(height: 40),
                     Text(
-                      'Double tap to speak',
+                      'Double tap anywhere to speak',
                       style: TextStyle(color: Colors.white70, fontSize: 18),
                     ),
                     const SizedBox(height: 40),
