@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import '../models/command.dart';
 import '../services/hive_service.dart';
 import '../services/webview_service.dart';
+import '../services/tts_service.dart';
 
 class CommandCreateScreen extends StatefulWidget {
   const CommandCreateScreen({super.key});
@@ -17,7 +17,7 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
   String _selectedAction = 'Aakashwani';
   bool _isListening = false;
   bool _isLoadingChannels = false;
-  final FlutterTts _flutterTts = FlutterTts();
+  final TtsService _ttsService = TtsService();
   List<String> _filteredChannels = [];
   List<String> _allChannels = [];
 
@@ -59,7 +59,7 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
   void dispose() {
     _startCommandController.dispose();
     _channelSearchController.dispose();
-    _flutterTts.stop();
+    _ttsService.stop();
     super.dispose();
   }
 
@@ -67,8 +67,7 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
     setState(() {
       _isListening = true;
     });
-    await _flutterTts.setLanguage('en-US');
-    await _flutterTts.speak('Say the command');
+    await _ttsService.speak('Say the command');
     await Future.delayed(const Duration(seconds: 2));
     _startCommandController.text = 'Play Vividh Bharti';
     setState(() {

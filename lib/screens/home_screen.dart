@@ -7,6 +7,10 @@ import '../services/webview_service.dart';
 import '../services/youtube_service.dart';
 import '../services/audio_player_service.dart';
 import '../services/app_log.dart';
+import '../services/tts_service.dart';
+import '../services/command_parser.dart';
+import '../services/recently_played_service.dart';
+import '../services/caregiver_settings_service.dart';
 import 'settings_screen.dart';
 
 enum AppMode { radio, youtube }
@@ -36,6 +40,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final SpeechToText _speechToText = SpeechToText();
   final FlutterTts _flutterTts = FlutterTts();
   final AudioPlayerService _audioPlayer = AudioPlayerService();
+  final TtsService _ttsService = TtsService();
+  final RecentlyPlayedService _recentService = RecentlyPlayedService();
+  int _recentIndex = 0;
   
   bool _speechEnabled = false;
   String _recognizedText = '';
@@ -75,6 +82,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _initSpeech();
     _initTts();
     _initAudioPlayerListeners();
+    _checkAutoListen();
+  }
+
+  Future<void> _checkAutoListen() async {
+    final settings = await CaregiverSettingsService().load();
+    if (settings.autoStartListening && _speechEnabled) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          _startListening();
+        }
+      });
+    }
   }
 
   void _initAudioPlayerListeners() {
@@ -168,10 +187,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _initTts() async {
-    await _flutterTts.setLanguage('en-US');
-    await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.setVolume(1.0);
-    await _flutterTts.setPitch(1.0);
+    await _ttsService.init();
+    
+    final settings = await CaregiverSettingsService().load();
+    final rateValue = CaregiverSettingsService().getSpeechRateValue(settings.speechRate);
+    await _flutterTts.setSpeechRate(rateValue);
+    
+    if (!_ttsService.isInitialized) {
+      await _ttsService.init();
+    }
+    if (settings.speakWelcome) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _ttsService.speakWelcome();
+        }
+      });
+    }
   }
 
   void _startListening() async {
