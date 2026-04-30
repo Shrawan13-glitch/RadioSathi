@@ -345,6 +345,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _switchToCommandMode();
       return;
     }
+    
+    if (lowerText.contains('open settings') || lowerText.contains('settings')) {
+      _openSettings();
+      return;
+    }
 
     if (_currentMode == AppMode.command) {
       _handleCommandModeCommand(spokenText);
@@ -490,6 +495,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {});
   }
 
+  void _openSettings() async {
+    await _flutterTts.speak('Opening settings');
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const SettingsScreen(),
+        ),
+      );
+    }
+  }
+
   double _currentVolume = 1.0;
   double _ttsVolumeBeforeMute = 1.0;
 
@@ -525,33 +542,43 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       builder: (context, child) {
         return Scaffold(
           backgroundColor: _backgroundColor,
-          body: Stack(
-            children: [
-              Column(
-                children: [
-                  _buildAppBar(),
-                  const SizedBox(height: 40),
-                  Text(
-                    'Tap the mic and speak',
-                    style: TextStyle(color: Colors.white70, fontSize: 18),
-                  ),
-                  const SizedBox(height: 40),
-                  Expanded(
-                    child: _currentMode == AppMode.command 
-                        ? _buildCommandContent()
-                        : _buildYouTubeContent(),
-                  ),
-                  const SizedBox(height: 40),
-                  _buildControlButtons(),
-                  const SizedBox(height: 20),
-                ],
-              ),
-              _buildWebViewOverlay(),
-            ],
+          body: GestureDetector(
+            onDoubleTap: _isListening ? _stopListening : _startListening,
+            onLongPress: _toggleMediaPauseResume,
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    _buildAppBar(),
+                    const SizedBox(height: 40),
+                    Text(
+                      'Double tap to speak',
+                      style: TextStyle(color: Colors.white70, fontSize: 18),
+                    ),
+                    const SizedBox(height: 40),
+                    Expanded(
+                      child: _currentMode == AppMode.command 
+                          ? _buildCommandContent()
+                          : _buildYouTubeContent(),
+                    ),
+                    const SizedBox(height: 40),
+                    _buildControlButtons(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+                _buildWebViewOverlay(),
+              ],
+            ),
           ),
         );
       },
     );
+  }
+
+  void _toggleMediaPauseResume() {
+    if (_currentMode == AppMode.youtube && _currentVideo != null) {
+      _toggleYouTubePlayPause();
+    }
   }
 
   Widget _buildAppBar() {
@@ -588,17 +615,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             _isWebViewVisible ? Icons.close : Icons.web,
             color: Colors.white,
           ),
-        ),
-        IconButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const SettingsScreen(),
-              ),
-            );
-          },
-          icon: const Icon(Icons.settings, color: Colors.white),
         ),
       ],
     );
@@ -794,40 +810,6 @@ Widget _buildControlButtons() {
               _isListening ? Icons.stop : Icons.mic,
               color: Colors.white,
               size: _isListening ? 50 : 40,
-            ),
-          ),
-        ),
-        const SizedBox(width: 20),
-        GestureDetector(
-          onTap: () => _adjustVolume(1),
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.blueGrey,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.volume_up,
-              color: Colors.white,
-              size: 25,
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: () => _adjustVolume(-1),
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.blueGrey,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.volume_down,
-              color: Colors.white,
-              size: 25,
             ),
           ),
         ),
