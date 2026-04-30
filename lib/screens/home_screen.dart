@@ -61,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   
   bool _isSearching = false;
   bool _isLoadingStream = false;
+  String _loadingStatus = '';
   List<YouTubeItem> _searchResults = [];
   YouTubeItem? _currentVideo;
   bool _isYouTubePlaying = false;
@@ -237,7 +238,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _playYouTubeLink(String link) async {
+    setState(() {
+      _loadingStatus = 'Searching...';
+      _isSearching = true;
+    });
+    await _flutterTts.speak('Searching');
+    
     final videos = await YouTubeService().getVideosFromLink(link);
+    
     if (videos.isNotEmpty) {
       setState(() {
         _searchResults = videos.map((v) => YouTubeItem(
@@ -246,12 +254,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           thumbnail: v.thumbnail,
           url: v.url,
         )).toList();
+        _loadingStatus = 'Getting stream...';
       });
       if (_searchResults.isNotEmpty) {
         await _playVideo(_searchResults.first);
       }
     } else {
       await _flutterTts.speak('Could not load link');
+      setState(() {
+        _loadingStatus = '';
+        _isSearching = false;
+      });
     }
   }
 
@@ -397,6 +410,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _isSearching = true;
       _searchResults = [];
+      _loadingStatus = 'Searching...';
     });
     
     await _flutterTts.speak('Searching for $query');
@@ -410,8 +424,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         thumbnail: r.thumbnail,
         url: r.url,
       )).toList();
-      _isSearching = false;
+      _loadingStatus = 'Getting stream...';
     });
+    await _flutterTts.speak('Loading');
     
     if (_searchResults.isNotEmpty) {
       await _playVideo(_searchResults.first);
@@ -422,6 +437,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _isLoadingStream = true;
       _currentVideo = video;
+      _loadingStatus = 'Loading...';
     });
     
     final videoId = video.id;
@@ -439,6 +455,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _isLoadingStream = false;
         _isYouTubePlaying = true;
         _isLiveStream = isLive;
+        _loadingStatus = '';
         if (!isLive) {
           _position = Duration.zero;
           _duration = Duration.zero;
@@ -447,6 +464,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     } else {
       setState(() {
         _isLoadingStream = false;
+        _loadingStatus = '';
       });
       await _flutterTts.speak('Could not load the video');
     }
@@ -630,15 +648,36 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(20),
       ),
       child: SingleChildScrollView(
-        child: Text(
-          _recognizedText.isEmpty
-              ? 'Your speech will appear here...'
-              : _recognizedText,
-          style: TextStyle(
-            color: _recognizedText.isEmpty ? Colors.white30 : Colors.white,
-            fontSize: 22,
-            height: 1.5,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_loadingStatus.isNotEmpty) ...[
+              Text(
+                _loadingStatus,
+                style: TextStyle(
+                  color: _accentColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              LinearProgressIndicator(
+                backgroundColor: Colors.white24,
+                valueColor: AlwaysStoppedAnimation(_accentColor),
+              ),
+              const SizedBox(height: 20),
+            ],
+            Text(
+              _recognizedText.isEmpty
+                  ? 'Your speech will appear here...'
+                  : _recognizedText,
+              style: TextStyle(
+                color: _recognizedText.isEmpty ? Colors.white30 : Colors.white,
+                fontSize: 22,
+                height: 1.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
