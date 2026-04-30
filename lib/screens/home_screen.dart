@@ -293,6 +293,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (_currentMode == AppMode.youtube && _isYouTubePlaying) {
         await _audioPlayer.pause();
       }
+      _ttsVolumeBeforeMute = _currentVolume;
+      await _flutterTts.setVolume(0);
       setState(() {
         _recognizedText = '';
       });
@@ -318,6 +320,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _stopListening() async {
     await _speechToText.stop();
     await _playBeep(2);
+    await _flutterTts.setVolume(_ttsVolumeBeforeMute);
     setState(() {
       _isListening = false;
     });
@@ -488,6 +491,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   double _currentVolume = 1.0;
+  double _ttsVolumeBeforeMute = 1.0;
 
   Future<void> _adjustVolume(int direction) async {
     _currentVolume = (_currentVolume + (direction * 0.1)).clamp(0.0, 1.0);
