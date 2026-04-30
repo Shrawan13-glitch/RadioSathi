@@ -597,6 +597,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _toggleMediaPauseResume() {
     if (_currentMode == AppMode.youtube && _currentVideo != null) {
       _toggleYouTubePlayPause();
+    } else if (_currentMode == AppMode.command) {
+      _togglePlayPause();
     }
   }
 
