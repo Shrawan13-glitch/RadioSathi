@@ -14,6 +14,8 @@ class CommandCreateScreen extends StatefulWidget {
 class _CommandCreateScreenState extends State<CommandCreateScreen> {
   final _startCommandController = TextEditingController();
   final _channelSearchController = TextEditingController();
+  final _youtubeQueryController = TextEditingController();
+  final _youtubeLinkController = TextEditingController();
   String _selectedAction = 'Aakashwani';
   bool _isListening = false;
   bool _isLoadingChannels = false;
@@ -59,6 +61,8 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
   void dispose() {
     _startCommandController.dispose();
     _channelSearchController.dispose();
+    _youtubeQueryController.dispose();
+    _youtubeLinkController.dispose();
     _ttsService.stop();
     super.dispose();
   }
@@ -76,18 +80,45 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
   }
 
   void _saveCommand() async {
-    if (_startCommandController.text.isEmpty || _channelSearchController.text.isEmpty) {
+    if (_startCommandController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
+        const SnackBar(content: Text('Please enter a command')),
       );
       return;
     }
+
+    if (_selectedAction == 'Aakashwani' && _channelSearchController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a channel')),
+      );
+      return;
+    }
+
+    if (_selectedAction == 'YouTube Search' && _youtubeQueryController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a search query')),
+      );
+      return;
+    }
+
+    if (_selectedAction == 'YouTube Play Link' && _youtubeLinkController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a YouTube link')),
+      );
+      return;
+    }
+
+    String channelName = _selectedAction == 'Aakashwani' ? _channelSearchController.text : '';
+    String? youtubeQuery = _selectedAction == 'YouTube Search' ? _youtubeQueryController.text : null;
+    String? youtubeLink = _selectedAction == 'YouTube Play Link' ? _youtubeLinkController.text : null;
 
     final command = Command(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       startCommand: _startCommandController.text,
       action: _selectedAction,
-      channelName: _channelSearchController.text,
+      channelName: channelName,
+      youtubeQuery: youtubeQuery,
+      youtubeLink: youtubeLink,
     );
 
     await HiveService.addCommand(command);
@@ -123,7 +154,7 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Start Command',
+              'Start Command (what to say)',
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 10),
@@ -184,7 +215,15 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
                 items: const [
                   DropdownMenuItem(
                     value: 'Aakashwani',
-                    child: Text('Aakashwani'),
+                    child: Text('Aakashwani (Radio)'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'YouTube Search',
+                    child: Text('YouTube Search'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'YouTube Play Link',
+                    child: Text('YouTube Play Link'),
                   ),
                 ],
                 onChanged: (value) {
@@ -195,28 +234,84 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            const Text(
-              'Select Channel',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
-            const SizedBox(height: 10),
-            if (_isLoadingChannels)
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF16213E),
-                  borderRadius: BorderRadius.circular(10),
+            if (_selectedAction == 'Aakashwani') ...[
+              const Text(
+                'Select Channel',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              const SizedBox(height: 10),
+              if (_isLoadingChannels)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16213E),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                )
+              else ...[
+                TextField(
+                  controller: _channelSearchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search channel...',
+                    hintStyle: const TextStyle(color: Colors.white30),
+                    filled: true,
+                    fillColor: const Color(0xFF16213E),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: _filterChannels,
                 ),
-                child: const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+                const SizedBox(height: 10),
+                Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16213E),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: _filteredChannels.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No channels found',
+                            style: TextStyle(color: Colors.white30),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _filteredChannels.length,
+                          itemBuilder: (context, index) {
+                            final channel = _filteredChannels[index];
+                            return ListTile(
+                              title: Text(
+                                channel,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  _channelSearchController.text = channel;
+                                });
+                              },
+                            );
+                          },
+                        ),
                 ),
-              )
-            else ...[
+              ],
+            ],
+            if (_selectedAction == 'YouTube Search') ...[
+              const Text(
+                'YouTube Search Query',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              const SizedBox(height: 10),
               TextField(
-                controller: _channelSearchController,
+                controller: _youtubeQueryController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Search channel...',
+                  hintText: 'e.g., Latest bhajans',
                   hintStyle: const TextStyle(color: Colors.white30),
                   filled: true,
                   fillColor: const Color(0xFF16213E),
@@ -225,39 +320,37 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
                     borderSide: BorderSide.none,
                   ),
                 ),
-                onChanged: _filterChannels,
               ),
               const SizedBox(height: 10),
-              Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF16213E),
-                  borderRadius: BorderRadius.circular(10),
+              const Text(
+                'This will search YouTube and play the first result when you say the command.',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
+            if (_selectedAction == 'YouTube Play Link') ...[
+              const Text(
+                'YouTube Link (video or playlist)',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _youtubeLinkController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'https://youtube.com/watch?v=... or playlist',
+                  hintStyle: const TextStyle(color: Colors.white30),
+                  filled: true,
+                  fillColor: const Color(0xFF16213E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
-                child: _filteredChannels.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No channels found',
-                          style: TextStyle(color: Colors.white30),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _filteredChannels.length,
-                        itemBuilder: (context, index) {
-                          final channel = _filteredChannels[index];
-                          return ListTile(
-                            title: Text(
-                              channel,
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                _channelSearchController.text = channel;
-                              });
-                            },
-                          );
-                        },
-                      ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Paste a YouTube video or playlist link. App will play video or queue all playlist videos.',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
             const SizedBox(height: 40),
@@ -265,9 +358,7 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _startCommandController.text.isEmpty || _channelSearchController.text.isEmpty
-                    ? null
-                    : _saveCommand,
+                onPressed: _saveCommand,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
                   shape: RoundedRectangleBorder(
