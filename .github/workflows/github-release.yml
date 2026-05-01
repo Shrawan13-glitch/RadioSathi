@@ -1,0 +1,46 @@
+name: Create GitHub Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+      release_title:
+        description: 'Release title'
+        required: false
+        type: string
+      body:
+        description: 'Release notes'
+        required: false
+        type: string
+
+concurrency:
+  group: github-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Download Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: radio-sathi-release-apk-${{ inputs.version }}
+          path: release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.release_title || inputs.version }}
+          body: ${{ inputs.body || 'Release built with Android Release Build workflow' }}
+          draft: false
+          prerelease: false
+          files: |
+            release/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
