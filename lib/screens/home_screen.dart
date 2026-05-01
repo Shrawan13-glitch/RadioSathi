@@ -221,11 +221,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         break;
       case 'YouTube Search':
         if (command.youtubeQuery != null && command.youtubeQuery!.isNotEmpty) {
+          _switchToYouTubeMode();
           await _searchYouTube(command.youtubeQuery!);
         }
         break;
       case 'YouTube Play Link':
         if (command.youtubeLink != null && command.youtubeLink!.isNotEmpty) {
+          _switchToYouTubeMode();
           await _playYouTubeLink(command.youtubeLink!);
         }
         break;
@@ -255,9 +257,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           url: v.url,
         )).toList();
         _loadingStatus = 'Getting stream...';
+        _isSearching = false;
       });
+      
       if (_searchResults.isNotEmpty) {
         await _playVideo(_searchResults.first);
+        
+        final currentVideo = _searchResults.first;
+        final relatedResults = await YouTubeService().search(currentVideo.title);
+        final relatedItems = relatedResults
+            .where((r) => r.id != currentVideo.id)
+            .take(10)
+            .map((r) => YouTubeItem(
+                  id: r.id,
+                  title: r.title,
+                  thumbnail: r.thumbnail,
+                  url: r.url,
+                ))
+            .toList();
+        
+        if (relatedItems.isNotEmpty && mounted) {
+          setState(() {
+            _searchResults = [..._searchResults, ...relatedItems];
+          });
+        }
       }
     } else {
       await _flutterTts.speak('Could not load link');
@@ -387,8 +410,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         return;
       }
       
-      if (lowerText.contains('next') || lowerText.contains('skip')) {
+      if (lowerText.contains('next') || lowerText.contains('skip') || lowerText.contains('आगे')) {
         _playNextVideo();
+        return;
+      }
+      
+      if (lowerText.contains('previous') || lowerText.contains('पिछला') || lowerText.contains('पूर्व')) {
+        _playPreviousVideo();
         return;
       }
       
@@ -425,11 +453,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         url: r.url,
       )).toList();
       _loadingStatus = 'Getting stream...';
+      _isSearching = false;
     });
     await _flutterTts.speak('Loading');
     
     if (_searchResults.isNotEmpty) {
       await _playVideo(_searchResults.first);
+    } else {
+      setState(() {
+        _loadingStatus = '';
+      });
+      await _flutterTts.speak('No results found');
     }
   }
 
@@ -773,46 +807,75 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           if (_searchResults.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text(
-              'Search Results',
+              'Queue (Say "next" or "previous" to navigate)',
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 10),
             Expanded(
               child: ListView.builder(
-                itemCount: _searchResults.length > 5 ? 5 : _searchResults.length,
+                itemCount: _searchResults.length,
                 itemBuilder: (context, index) {
                   final video = _searchResults[index];
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: video.thumbnail.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              video.thumbnail,
-                              width: 60,
-                              height: 40,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 60,
-                                height: 40,
-                                color: Colors.grey,
-                                child: const Icon(Icons.music_video, color: Colors.white54),
-                              ),
-                            ),
-                          )
-                        : Container(
-                            width: 60,
-                            height: 40,
-                            color: Colors.grey,
-                            child: const Icon(Icons.music_video, color: Colors.white54),
-                          ),
-                    title: Text(
-                      video.title,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  final isCurrentPlaying = video.id == _currentVideo?.id;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isCurrentPlaying ? _accentColor.withValues(alpha: 0.2) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: isCurrentPlaying ? Border.all(color: _accentColor, width: 1) : null,
                     ),
-                    onTap: () => _playVideo(video),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          alignment: Alignment.center,
+                          child: isCurrentPlaying
+                              ? Icon(Icons.play_arrow, color: _accentColor, size: 20)
+                              : Text(
+                                  '${index + 1}',
+                                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                ),
+                        ),
+                        const SizedBox(width: 8),
+                        video.thumbnail.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Image.network(
+                                  video.thumbnail,
+                                  width: 50,
+                                  height: 35,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 50,
+                                    height: 35,
+                                    color: Colors.grey,
+                                    child: const Icon(Icons.music_video, color: Colors.white54, size: 20),
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                width: 50,
+                                height: 35,
+                                color: Colors.grey,
+                                child: const Icon(Icons.music_video, color: Colors.white54, size: 20),
+                              ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            video.title,
+                            style: TextStyle(
+                              color: isCurrentPlaying ? _accentColor : Colors.white,
+                              fontSize: 13,
+                              fontWeight: isCurrentPlaying ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
