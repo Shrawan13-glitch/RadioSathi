@@ -68,9 +68,9 @@ class ExtractorCatalog(
                 return StreamResult(anyAudioStream.url, false, "any_audio")
             }
             
-            // Last fallback: try HLS URL
+            // Last fallback: try HLS URL (usually not live at this point)
             if (info.hlsUrl != null) {
-                return StreamResult(info.hlsUrl, true, "hls_fallback")
+                return StreamResult(info.hlsUrl, false, "hls_fallback")
             }
             
             return StreamResult(null, false, "none")

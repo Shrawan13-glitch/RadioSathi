@@ -562,7 +562,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       await _audioPlayer.setUrl(streamUrl);
       await _audioPlayer.play();
       
-      final isLive = isLiveStream || streamUrl.contains('.m3u8');
+      final isLive = isLiveStream;
       
       await _flutterTts.speak('Now playing ${video.title}');
       
