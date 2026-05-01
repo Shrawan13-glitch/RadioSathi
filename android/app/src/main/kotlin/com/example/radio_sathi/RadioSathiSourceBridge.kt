@@ -34,6 +34,15 @@ class RadioSathiSourceBridge(
                             result.error("STREAM_ERROR", "Could not get stream URL", null)
                         }
                     }
+                    "getStreamUrlWithMeta" -> {
+                        val videoId = call.argument<String>("videoId").orEmpty()
+                        val streamResult = extractorCatalog.getStreamUrlWithMeta(videoId)
+                        result.success(mapOf(
+                            "url" to streamResult.url,
+                            "isLive" to streamResult.isLive,
+                            "method" to streamResult.method
+                        ))
+                    }
                     else -> result.notImplemented()
                 }
             } catch (error: Throwable) {

@@ -1,6 +1,5 @@
 package com.example.radio_sathi
 
-import android.util.Log
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.search.SearchInfo
 import org.schabi.newpipe.extractor.stream.StreamInfo
@@ -10,7 +9,6 @@ class ExtractorCatalog(
     private val downloader: OkHttpDownloader = OkHttpDownloader(),
 ) {
     private val service = ServiceList.YouTube
-    private val TAG = "ExtractorCatalog"
 
     init {
         org.schabi.newpipe.extractor.NewPipe.init(downloader)
@@ -38,19 +36,18 @@ class ExtractorCatalog(
             }
     }
 
-    fun getStreamUrl(videoId: String): String? {
+    data class StreamResult(val url: String?, val isLive: Boolean, val method: String)
+
+    fun getStreamUrlWithMeta(videoId: String): StreamResult {
         try {
             val url = "https://www.youtube.com/watch?v=$videoId"
             val info = StreamInfo.getInfo(service, url)
             
-            Log.d(TAG, "Stream type: ${info.streamType}")
-            Log.d(TAG, "Has HLS: ${info.hlsUrl != null}")
-            Log.d(TAG, "Audio streams count: ${info.audioStreams.size}")
+            val isLive = info.streamType == StreamType.LIVE_STREAM || info.streamType == StreamType.AUDIO_LIVE_STREAM
             
             // Check if it's a live stream - use HLS directly
-            if (info.streamType == StreamType.LIVE_STREAM || info.streamType == StreamType.AUDIO_LIVE_STREAM) {
-                Log.d(TAG, "Detected live stream, using HLS")
-                return info.hlsUrl
+            if (isLive) {
+                return StreamResult(info.hlsUrl, true, "live_hls")
             }
             
             // First try direct audio streams (not HLS)
@@ -59,28 +56,27 @@ class ExtractorCatalog(
                 .maxByOrNull { maxOf(it.bitrate, it.averageBitrate) }
             
             if (directAudioStream != null) {
-                Log.d(TAG, "Using direct audio stream")
-                return directAudioStream.url
+                return StreamResult(directAudioStream.url, false, "direct_audio")
             }
             
             // Fallback to any audio stream
             val anyAudioStream = info.audioStreams.maxByOrNull { maxOf(it.bitrate, it.averageBitrate) }
             if (anyAudioStream != null) {
-                Log.d(TAG, "Using any audio stream")
-                return anyAudioStream.url
+                return StreamResult(anyAudioStream.url, false, "any_audio")
             }
             
             // Last fallback: try HLS URL
             if (info.hlsUrl != null) {
-                Log.d(TAG, "Using HLS fallback")
-                return info.hlsUrl
+                return StreamResult(info.hlsUrl, true, "hls_fallback")
             }
             
-            Log.d(TAG, "No stream URL found")
-            return null
+            return StreamResult(null, false, "none")
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting stream URL: ${e.message}")
-            return null
+            return StreamResult(null, false, "error: ${e.message}")
         }
+    }
+
+    fun getStreamUrl(videoId: String): String? {
+        return getStreamUrlWithMeta(videoId).url
     }
 }

@@ -68,10 +68,16 @@ class YouTubeService {
   Future<String?> getStreamUrl(String videoId) async {
     try {
       AppLog.log('Getting stream URL for video: $videoId');
-      final result = await _channel.invokeMethod('getStreamUrl', {'videoId': videoId});
+      final result = await _channel.invokeMethod('getStreamUrlWithMeta', {'videoId': videoId});
       
-      if (result != null && result is String) {
-        return result;
+      if (result != null && result is Map) {
+        final url = result['url'] as String?;
+        final isLive = result['isLive'] as bool? ?? false;
+        final method = result['method'] as String? ?? 'unknown';
+        
+        AppLog.log('Stream result: method=$method, isLive=$isLive, url=${url?.substring(0, 50)}...');
+        
+        return url;
       }
       return null;
     } on PlatformException catch (e) {
