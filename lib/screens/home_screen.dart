@@ -22,12 +22,14 @@ class YouTubeItem {
   final String title;
   final String thumbnail;
   final String url;
+  final bool isLive;
 
   YouTubeItem({
     required this.id,
     required this.title,
     required this.thumbnail,
     required this.url,
+    this.isLive = false,
   });
 }
 
@@ -549,15 +551,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
     
     final videoId = video.id;
-    final streamUrl = await YouTubeService().getStreamUrl(videoId);
+    final streamResult = await YouTubeService().getStreamUrlWithLiveStatus(videoId);
     
     if (!mounted) return;
     
-    if (streamUrl != null) {
+    if (streamResult != null && streamResult.$1 != null) {
+      final streamUrl = streamResult.$1!;
+      final isLiveStream = streamResult.$2;
+      
       await _audioPlayer.setUrl(streamUrl);
       await _audioPlayer.play();
       
-      final isLive = streamUrl.contains('.m3u8');
+      final isLive = isLiveStream || streamUrl.contains('.m3u8');
       
       await _flutterTts.speak('Now playing ${video.title}');
       

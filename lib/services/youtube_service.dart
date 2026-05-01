@@ -86,6 +86,27 @@ class YouTubeService {
     }
   }
 
+  Future<(String?, bool)?> getStreamUrlWithLiveStatus(String videoId) async {
+    try {
+      AppLog.log('Getting stream URL with live status for video: $videoId');
+      final result = await _channel.invokeMethod('getStreamUrlWithMeta', {'videoId': videoId});
+      
+      if (result != null && result is Map) {
+        final url = result['url'] as String?;
+        final isLive = result['isLive'] as bool? ?? false;
+        final method = result['method'] as String? ?? 'unknown';
+        
+        AppLog.log('Stream result: method=$method, isLive=$isLive');
+        
+        return (url, isLive);
+      }
+      return null;
+    } on PlatformException catch (e) {
+      AppLog.log('Get stream URL error: ${e.message}');
+      return null;
+    }
+  }
+
   Future<List<YouTubeResult>> getChannelLatestLive(String channelInput) async {
     try {
       AppLog.log('Getting latest live from channel: $channelInput');
