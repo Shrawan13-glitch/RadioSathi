@@ -766,8 +766,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 8),
             Text(
-              _currentVideo!.title,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              _isLoadingStream 
+                  ? '${_currentVideo!.title}  •  Loading...'
+                  : _currentVideo!.title,
+              style: TextStyle(
+                color: _isLoadingStream ? Colors.white54 : Colors.white, 
+                fontSize: 16
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -914,8 +919,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 8),
             Text(
-              _currentVideo!.title,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              _isLoadingStream 
+                  ? '${_currentVideo!.title}  •  Loading...'
+                  : _currentVideo!.title,
+              style: TextStyle(
+                color: _isLoadingStream ? Colors.white54 : Colors.white, 
+                fontSize: 16
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
