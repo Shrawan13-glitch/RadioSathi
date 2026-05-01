@@ -12,6 +12,8 @@ class CaregiverSettings {
   final SpeechRate speechRate;
   final SettingCategory defaultCategory;
   final bool safeSearchMode;
+  final double shakeThreshold;
+  final int minListeningSeconds;
 
   const CaregiverSettings({
     this.language = 'marathi',
@@ -20,6 +22,8 @@ class CaregiverSettings {
     this.speechRate = SpeechRate.slow,
     this.defaultCategory = SettingCategory.none,
     this.safeSearchMode = true,
+    this.shakeThreshold = 15.0,
+    this.minListeningSeconds = 5,
   });
 
   CaregiverSettings copyWith({
@@ -29,6 +33,8 @@ class CaregiverSettings {
     SpeechRate? speechRate,
     SettingCategory? defaultCategory,
     bool? safeSearchMode,
+    double? shakeThreshold,
+    int? minListeningSeconds,
   }) {
     return CaregiverSettings(
       language: language ?? this.language,
@@ -37,6 +43,8 @@ class CaregiverSettings {
       speechRate: speechRate ?? this.speechRate,
       defaultCategory: defaultCategory ?? this.defaultCategory,
       safeSearchMode: safeSearchMode ?? this.safeSearchMode,
+      shakeThreshold: shakeThreshold ?? this.shakeThreshold,
+      minListeningSeconds: minListeningSeconds ?? this.minListeningSeconds,
     );
   }
 }
@@ -48,6 +56,8 @@ class CaregiverSettingsService {
   static const String _speechRateKey = 'cg_speech_rate';
   static const String _defaultCategoryKey = 'cg_default_category';
   static const String _safeSearchKey = 'cg_safe_search';
+  static const String _shakeThresholdKey = 'cg_shake_threshold';
+  static const String _minListeningSecondsKey = 'cg_min_listening_seconds';
 
   static final CaregiverSettingsService _instance = CaregiverSettingsService._internal();
   factory CaregiverSettingsService() => _instance;
@@ -66,6 +76,8 @@ class CaregiverSettingsService {
       speechRate: SpeechRate.values[prefs.getInt(_speechRateKey) ?? 0],
       defaultCategory: SettingCategory.values[prefs.getInt(_defaultCategoryKey) ?? 0],
       safeSearchMode: prefs.getBool(_safeSearchKey) ?? true,
+      shakeThreshold: prefs.getDouble(_shakeThresholdKey) ?? 15.0,
+      minListeningSeconds: prefs.getInt(_minListeningSecondsKey) ?? 5,
     );
     return _cached!;
   }
@@ -79,6 +91,8 @@ class CaregiverSettingsService {
     await prefs.setInt(_speechRateKey, settings.speechRate.index);
     await prefs.setInt(_defaultCategoryKey, settings.defaultCategory.index);
     await prefs.setBool(_safeSearchKey, settings.safeSearchMode);
+    await prefs.setDouble(_shakeThresholdKey, settings.shakeThreshold);
+    await prefs.setInt(_minListeningSecondsKey, settings.minListeningSeconds);
   }
 
   Future<void> clearFavorites() async {

@@ -102,6 +102,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _settings.safeSearchMode,
             onChanged: (v) => _updateSetting(_settings.copyWith(safeSearchMode: v)),
           ),
+          Card(
+            color: const Color(0xFF16213E),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.vibration, color: Colors.white, size: 28),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Shake to speak / हलवून बोला',
+                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                            Text(
+                              'Sensitivity: ${_settings.shakeThreshold.toInt()}',
+                              style: const TextStyle(color: Colors.white70, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: _settings.shakeThreshold,
+                    min: 5,
+                    max: 30,
+                    divisions: 25,
+                    activeColor: Colors.deepPurple,
+                    inactiveColor: Colors.deepPurple.withValues(alpha: 0.3),
+                    onChanged: (v) => _updateSetting(_settings.copyWith(shakeThreshold: v)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Card(
+            color: const Color(0xFF16213E),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.timer, color: Colors.white, size: 28),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Mic on duration / मायक चालू वेळ',
+                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                            Text(
+                              '${_settings.minListeningSeconds} seconds',
+                              style: const TextStyle(color: Colors.white70, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: _settings.minListeningSeconds.toDouble(),
+                    min: 3,
+                    max: 15,
+                    divisions: 12,
+                    activeColor: Colors.deepPurple,
+                    inactiveColor: Colors.deepPurple.withValues(alpha: 0.3),
+                    onChanged: (v) => _updateSetting(_settings.copyWith(minListeningSeconds: v.toInt())),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 20),
           _buildSectionHeader('Data / डेटा'),
           const SizedBox(height: 10),

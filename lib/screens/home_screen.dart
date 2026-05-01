@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:just_audio/just_audio.dart';
@@ -54,6 +56,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isListening = false;
   bool _isWebViewVisible = false;
   
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  DateTime? _lastShakeTime;
+  double _shakeThreshold = 15.0;
+  int _minListeningDurationMs = 5000;
+  DateTime? _shakeListeningStartTime;
+  static const int _shakeCooldownMs = 1000;
+  
   AppMode _currentMode = AppMode.command;
   late AnimationController _modeAnimationController;
   late Animation<Color?> _backgroundColorAnimation;
@@ -88,6 +97,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _initSpeech();
     _initTts();
     _initAudioPlayerListeners();
+    _initShakeDetection();
     _checkAutoListen();
   }
 
@@ -185,6 +195,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       parent: _modeAnimationController,
       curve: Curves.easeInOut,
     ));
+  }
+
+  void _initShakeDetection() async {
+    final settings = await CaregiverSettingsService().load();
+    _shakeThreshold = settings.shakeThreshold;
+    _minListeningDurationMs = settings.minListeningSeconds * 1000;
+    
+    _accelerometerSubscription = accelerometerEventStream().listen((AccelerometerEvent event) {
+      final double acceleration = event.x * event.x + event.y * event.y + event.z * event.z;
+      final double accelerationWithGravity = acceleration - 9.8 * 9.8;
+      final double shakeForce = accelerationWithGravity.abs();
+      
+      if (shakeForce > _shakeThreshold) {
+        final now = DateTime.now();
+        final canTrigger = _lastShakeTime == null || 
+            now.difference(_lastShakeTime!).inMilliseconds > _shakeCooldownMs;
+        
+        if (canTrigger && !_isListening && mounted) {
+          _lastShakeTime = now;
+          _shakeListeningStartTime = now;
+          _startListening();
+        }
+      }
+    });
   }
 
   void _switchToYouTubeMode() async {
@@ -406,6 +440,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _stopListening() async {
+    if (_shakeListeningStartTime != null) {
+      final elapsed = DateTime.now().difference(_shakeListeningStartTime!).inMilliseconds;
+      if (elapsed < _minListeningDurationMs) {
+        final remaining = _minListeningDurationMs - elapsed;
+        await Future.delayed(Duration(milliseconds: remaining));
+      }
+      _shakeListeningStartTime = null;
+    }
     await _speechToText.stop();
     await _playBeep(2);
     await _flutterTts.setVolume(_ttsVolumeBeforeMute);
@@ -671,6 +713,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _flutterTts.stop();
     _audioPlayer.dispose();
     _beepPlayer.dispose();
+    _accelerometerSubscription?.cancel();
     super.dispose();
   }
 
@@ -692,7 +735,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _buildAppBar(),
                     const SizedBox(height: 40),
                     Text(
-                      'Double tap anywhere to speak',
+                      'Double tap or shake device to speak',
                       style: TextStyle(color: Colors.white70, fontSize: 18),
                     ),
                     const SizedBox(height: 40),
