@@ -23,3 +23,7 @@
 # Keep javax.script
 -keep class javax.script.** { *; }
 -dontwarn javax.script.**
+
+# Keep Google Play Core
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
