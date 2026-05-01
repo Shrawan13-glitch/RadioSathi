@@ -221,13 +221,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         break;
       case 'YouTube Search':
         if (command.youtubeQuery != null && command.youtubeQuery!.isNotEmpty) {
-          _switchToYouTubeMode();
           await _searchYouTube(command.youtubeQuery!);
         }
         break;
       case 'YouTube Play Link':
         if (command.youtubeLink != null && command.youtubeLink!.isNotEmpty) {
-          _switchToYouTubeMode();
           await _playYouTubeLink(command.youtubeLink!);
         }
         break;
@@ -388,6 +386,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     if (_currentMode == AppMode.command) {
+      if (_currentVideo != null) {
+        if (lowerText.contains('next') || lowerText.contains('skip') || lowerText.contains('आगे')) {
+          _playNextVideo();
+          return;
+        }
+        if (lowerText.contains('previous') || lowerText.contains('पिछला') || lowerText.contains('पूर्व')) {
+          _playPreviousVideo();
+          return;
+        }
+        if (lowerText.contains('stop') || lowerText.contains('pause')) {
+          _toggleYouTubePlayPause();
+          return;
+        }
+      }
       _handleCommandModeCommand(spokenText);
       return;
     }
@@ -629,7 +641,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _toggleMediaPauseResume() {
-    if (_currentMode == AppMode.youtube && _currentVideo != null) {
+    if (_currentVideo != null) {
       _toggleYouTubePlayPause();
     } else if (_currentMode == AppMode.command) {
       _togglePlayPause();
@@ -683,38 +695,140 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         color: _containerColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_loadingStatus.isNotEmpty) ...[
-              Text(
-                _loadingStatus,
-                style: TextStyle(
-                  color: _accentColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              LinearProgressIndicator(
-                backgroundColor: Colors.white24,
-                valueColor: AlwaysStoppedAnimation(_accentColor),
-              ),
-              const SizedBox(height: 20),
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_loadingStatus.isNotEmpty) ...[
             Text(
-              _recognizedText.isEmpty
-                  ? 'Your speech will appear here...'
-                  : _recognizedText,
+              _loadingStatus,
               style: TextStyle(
-                color: _recognizedText.isEmpty ? Colors.white30 : Colors.white,
-                fontSize: 22,
-                height: 1.5,
+                color: _accentColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            LinearProgressIndicator(
+              backgroundColor: Colors.white24,
+              valueColor: AlwaysStoppedAnimation(_accentColor),
+            ),
+            const SizedBox(height: 20),
+          ],
+          Text(
+            _recognizedText.isEmpty
+                ? 'Your speech will appear here...'
+                : _recognizedText,
+            style: TextStyle(
+              color: _recognizedText.isEmpty ? Colors.white30 : Colors.white,
+              fontSize: 22,
+              height: 1.5,
+            ),
+          ),
+          if (_currentVideo != null) ...[
+            const SizedBox(height: 20),
+            Divider(color: Colors.white24),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.play_circle_fill, color: _accentColor, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Now Playing',
+                  style: TextStyle(color: _accentColor, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _currentVideo!.title,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Say "next" or "previous" to navigate queue',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ],
+          if (_searchResults.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(
+              'Queue',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _searchResults.length,
+                itemBuilder: (context, index) {
+                  final video = _searchResults[index];
+                  final isCurrentPlaying = video.id == _currentVideo?.id;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isCurrentPlaying ? _accentColor.withValues(alpha: 0.2) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: isCurrentPlaying ? Border.all(color: _accentColor, width: 1) : null,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          alignment: Alignment.center,
+                          child: isCurrentPlaying
+                              ? Icon(Icons.play_arrow, color: _accentColor, size: 20)
+                              : Text(
+                                  '${index + 1}',
+                                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                ),
+                        ),
+                        const SizedBox(width: 8),
+                        video.thumbnail.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Image.network(
+                                  video.thumbnail,
+                                  width: 50,
+                                  height: 35,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 50,
+                                    height: 35,
+                                    color: Colors.grey,
+                                    child: const Icon(Icons.music_video, color: Colors.white54, size: 20),
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                width: 50,
+                                height: 35,
+                                color: Colors.grey,
+                                child: const Icon(Icons.music_video, color: Colors.white54, size: 20),
+                              ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            video.title,
+                            style: TextStyle(
+                              color: isCurrentPlaying ? _accentColor : Colors.white,
+                              fontSize: 13,
+                              fontWeight: isCurrentPlaying ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -918,7 +1032,7 @@ Widget _buildControlButtons() {
             ),
           ),
         ),
-        if (_currentMode == AppMode.youtube && _currentVideo != null) ...[
+        if (_currentVideo != null) ...[
           const SizedBox(width: 40),
           _buildYouTubeControls(),
         ],
