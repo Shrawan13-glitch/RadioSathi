@@ -752,6 +752,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
       actions: [
         IconButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+          icon: const Icon(Icons.settings, color: Colors.white),
+        ),
+        IconButton(
           onPressed: _toggleWebView,
           icon: Icon(
             _isWebViewVisible ? Icons.close : Icons.web,

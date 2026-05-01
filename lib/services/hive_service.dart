@@ -23,6 +23,10 @@ class HiveService {
     await _commandsBox.delete(id);
   }
 
+  static Future<void> updateCommand(Command command) async {
+    await _commandsBox.put(command.id, command);
+  }
+
   static Command? findCommandByStartCommand(String spokenText) {
     final commands = _commandsBox.values.toList();
     for (int i = commands.length - 1; i >= 0; i--) {

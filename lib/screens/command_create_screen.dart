@@ -5,7 +5,8 @@ import '../services/webview_service.dart';
 import '../services/tts_service.dart';
 
 class CommandCreateScreen extends StatefulWidget {
-  const CommandCreateScreen({super.key});
+  final Command? command;
+  const CommandCreateScreen({super.key, this.command});
 
   @override
   State<CommandCreateScreen> createState() => _CommandCreateScreenState();
@@ -28,6 +29,22 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
   void initState() {
     super.initState();
     _loadChannels();
+    if (widget.command != null) {
+      _startCommandController.text = widget.command!.startCommand;
+      _selectedAction = widget.command!.action;
+      if (widget.command!.channelName.isNotEmpty) {
+        _channelSearchController.text = widget.command!.channelName;
+      }
+      if (widget.command!.youtubeQuery != null) {
+        _youtubeQueryController.text = widget.command!.youtubeQuery!;
+      }
+      if (widget.command!.youtubeLink != null) {
+        _youtubeLinkController.text = widget.command!.youtubeLink!;
+      }
+      if (widget.command!.youtubeChannelHandle != null) {
+        _youtubeChannelHandleController.text = widget.command!.youtubeChannelHandle!;
+      }
+    }
   }
 
   Future<void> _loadChannels() async {
@@ -69,15 +86,17 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
     super.dispose();
   }
 
-  void _startListening() async {
+  void _startListening() {
     setState(() {
       _isListening = true;
     });
-    await _ttsService.speak('Say the command');
-    await Future.delayed(const Duration(seconds: 2));
     _startCommandController.text = 'Play Vividh Bharti';
-    setState(() {
-      _isListening = false;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isListening = false;
+        });
+      }
     });
   }
 
@@ -122,17 +141,29 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
     String? youtubeLink = _selectedAction == 'YouTube Play Link' ? _youtubeLinkController.text : null;
     String? youtubeChannelHandle = _selectedAction == 'YouTube Latest Live' ? _youtubeChannelHandleController.text : null;
 
-    final command = Command(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      startCommand: _startCommandController.text,
-      action: _selectedAction,
-      channelName: channelName,
-      youtubeQuery: youtubeQuery,
-      youtubeLink: youtubeLink,
-      youtubeChannelHandle: youtubeChannelHandle,
-    );
-
-    await HiveService.addCommand(command);
+    if (widget.command != null) {
+      final updatedCommand = Command(
+        id: widget.command!.id,
+        startCommand: _startCommandController.text,
+        action: _selectedAction,
+        channelName: channelName,
+        youtubeQuery: youtubeQuery,
+        youtubeLink: youtubeLink,
+        youtubeChannelHandle: youtubeChannelHandle,
+      );
+      await HiveService.updateCommand(updatedCommand);
+    } else {
+      final command = Command(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        startCommand: _startCommandController.text,
+        action: _selectedAction,
+        channelName: channelName,
+        youtubeQuery: youtubeQuery,
+        youtubeLink: youtubeLink,
+        youtubeChannelHandle: youtubeChannelHandle,
+      );
+      await HiveService.addCommand(command);
+    }
     
     if (mounted) {
       Navigator.pop(context);
@@ -150,9 +181,9 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back, color: Colors.white),
         ),
-        title: const Text(
-          'Create Command',
-          style: TextStyle(
+        title: Text(
+          widget.command != null ? 'Edit Command' : 'Create Command',
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 24,
             fontWeight: FontWeight.bold,

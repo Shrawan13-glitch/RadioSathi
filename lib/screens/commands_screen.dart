@@ -76,9 +76,26 @@ class _CommandsScreenState extends State<CommandsScreen> {
                       '${command.action} - ${command.channelName}',
                       style: const TextStyle(color: Colors.white70),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteCommand(command.id),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CommandCreateScreen(command: command),
+                              ),
+                            );
+                            _loadCommands();
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deleteCommand(command.id),
+                        ),
+                      ],
                     ),
                   ),
                 );
