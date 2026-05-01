@@ -771,13 +771,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            if (_isLoadingStream) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Loading stream...',
-                style: TextStyle(color: Colors.white38, fontSize: 12),
-              ),
-            ],
             const SizedBox(height: 4),
             Text(
               'Say "next" or "previous" to navigate queue',
@@ -926,13 +919,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            if (_isLoadingStream) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Loading stream...',
-                style: TextStyle(color: Colors.white38, fontSize: 12),
-              ),
-            ],
           ],
           if (_searchResults.isNotEmpty) ...[
             const SizedBox(height: 20),
