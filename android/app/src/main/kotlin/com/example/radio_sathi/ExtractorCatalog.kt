@@ -1,7 +1,6 @@
 package com.example.radio_sathi
 
 import org.schabi.newpipe.extractor.ServiceList
-import org.schabi.newpipe.extractor.channel.ChannelInfo
 import org.schabi.newpipe.extractor.search.SearchInfo
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamType
@@ -83,19 +82,17 @@ class ExtractorCatalog(
 
     fun getChannelLatestLive(channelInput: String): List<Map<String, Any?>> {
         try {
-            // Build channel URL from input
-            val channelUrl = when {
-                channelInput.startsWith("@") -> "https://www.youtube.com/$channelInput"
-                channelInput.contains(" ") -> "https://www.youtube.com/c/${channelInput.replace(" ", "")}"
-                else -> "https://www.youtube.com/$channelInput"
-            }
+            // Search for the channel's latest videos using search
+            val query = channelInput.removePrefix("@")
+            val handler = service.searchQHFactory.fromQuery(query)
+            val searchInfo = SearchInfo.getInfo(service, handler)
             
-            val channelInfo = ChannelInfo.getInfo(service, channelUrl)
+            // Get items and filter for this channel
+            val items = searchInfo.relatedItems
+                .filterIsInstance<org.schabi.newpipe.extractor.stream.StreamInfoItem>()
+                .take(20)
             
-            // Get related streams (latest videos from channel)
-            val relatedItems = channelInfo.relatedStreams
-            
-            return relatedItems.take(10).map { item ->
+            return items.take(10).map { item ->
                 val videoId = item.url.substringAfter("v=").substringBefore("&")
                 mapOf(
                     "id" to videoId,
