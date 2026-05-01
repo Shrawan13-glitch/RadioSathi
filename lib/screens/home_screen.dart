@@ -238,6 +238,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _playYouTubeLink(String link) async {
+    if (!mounted) return;
+    
     setState(() {
       _loadingStatus = 'Searching...';
       _isSearching = true;
@@ -245,6 +247,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     await _flutterTts.speak('Searching');
     
     final videos = await YouTubeService().getVideosFromLink(link);
+    
+    if (!mounted) return;
     
     if (videos.isNotEmpty) {
       setState(() {
@@ -260,6 +264,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       
       if (_searchResults.isNotEmpty) {
         await _playVideo(_searchResults.first);
+        
+        if (!mounted) return;
         
         final currentVideo = _searchResults.first;
         final relatedResults = await YouTubeService().search(currentVideo.title);
@@ -282,10 +288,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
     } else {
       await _flutterTts.speak('Could not load link');
-      setState(() {
-        _loadingStatus = '';
-        _isSearching = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingStatus = '';
+          _isSearching = false;
+        });
+      }
     }
   }
 
@@ -447,6 +455,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _searchYouTube(String query) async {
+    if (!mounted) return;
+    
     setState(() {
       _isSearching = true;
       _searchResults = [];
@@ -456,6 +466,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     await _flutterTts.speak('Searching for $query');
     
     final results = await YouTubeService().search(query);
+    
+    if (!mounted) return;
     
     setState(() {
       _searchResults = results.map((r) => YouTubeItem(
@@ -469,17 +481,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
     await _flutterTts.speak('Loading');
     
+    if (!mounted) return;
+    
     if (_searchResults.isNotEmpty) {
       await _playVideo(_searchResults.first);
     } else {
-      setState(() {
-        _loadingStatus = '';
-      });
+      if (mounted) {
+        setState(() {
+          _loadingStatus = '';
+        });
+      }
       await _flutterTts.speak('No results found');
     }
   }
 
   Future<void> _playVideo(YouTubeItem video) async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoadingStream = true;
       _currentVideo = video;
@@ -489,6 +507,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final videoId = video.id;
     final streamUrl = await YouTubeService().getStreamUrl(videoId);
     
+    if (!mounted) return;
+    
     if (streamUrl != null) {
       await _audioPlayer.setUrl(streamUrl);
       await _audioPlayer.play();
@@ -497,21 +517,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       
       await _flutterTts.speak('Now playing ${video.title}');
       
-      setState(() {
-        _isLoadingStream = false;
-        _isYouTubePlaying = true;
-        _isLiveStream = isLive;
-        _loadingStatus = '';
-        if (!isLive) {
-          _position = Duration.zero;
-          _duration = Duration.zero;
-        }
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingStream = false;
+          _isSearching = false;
+          _isYouTubePlaying = true;
+          _isLiveStream = isLive;
+          _loadingStatus = '';
+          if (!isLive) {
+            _position = Duration.zero;
+            _duration = Duration.zero;
+          }
+        });
+      }
     } else {
-      setState(() {
-        _isLoadingStream = false;
-        _loadingStatus = '';
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingStream = false;
+          _isSearching = false;
+          _loadingStatus = '';
+        });
+      }
       await _flutterTts.speak('Could not load the video');
     }
   }
