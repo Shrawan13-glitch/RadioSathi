@@ -23,13 +23,14 @@ class CommandAdapter extends TypeAdapter<Command> {
       channelName: fields[3] as String,
       youtubeQuery: fields[4] as String?,
       youtubeLink: fields[5] as String?,
+      youtubeChannelHandle: fields[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Command obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class CommandAdapter extends TypeAdapter<Command> {
       ..writeByte(4)
       ..write(obj.youtubeQuery)
       ..writeByte(5)
-      ..write(obj.youtubeLink);
+      ..write(obj.youtubeLink)
+      ..writeByte(6)
+      ..write(obj.youtubeChannelHandle);
   }
 
   @override

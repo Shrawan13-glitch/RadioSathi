@@ -43,6 +43,11 @@ class RadioSathiSourceBridge(
                             "method" to streamResult.method
                         ))
                     }
+                    "getChannelLatestLive" -> {
+                        val channelInput = call.argument<String>("channelInput").orEmpty()
+                        val results = extractorCatalog.getChannelLatestLive(channelInput)
+                        result.success(results)
+                    }
                     else -> result.notImplemented()
                 }
             } catch (error: Throwable) {

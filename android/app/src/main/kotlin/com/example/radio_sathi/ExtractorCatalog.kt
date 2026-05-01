@@ -1,9 +1,12 @@
 package com.example.radio_sathi
 
 import org.schabi.newpipe.extractor.ServiceList
+import org.schabi.newpipe.extractor.channel.ChannelInfo
+import org.schabi.newpipe.extractor.channel.ChannelTabs
 import org.schabi.newpipe.extractor.search.SearchInfo
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamType
+import org.schabi.newpipe.extractor.stream.StreamInfoItem
 
 class ExtractorCatalog(
     private val downloader: OkHttpDownloader = OkHttpDownloader(),
@@ -78,5 +81,70 @@ class ExtractorCatalog(
 
     fun getStreamUrl(videoId: String): String? {
         return getStreamUrlWithMeta(videoId).url
+    }
+
+    fun getChannelLatestLive(channelInput: String): List<Map<String, Any?>> {
+        try {
+            // Build channel URL from input
+            val channelUrl = when {
+                channelInput.startsWith("@") -> "https://www.youtube.com/$channelInput"
+                channelInput.contains(" ") -> "https://www.youtube.com/c/${channelInput.replace(" ", "")}"
+                else -> "https://www.youtube.com/$channelInput"
+            }
+            
+            val channelInfo = ChannelInfo.getInfo(service, channelUrl)
+            
+            // First try to get live streams
+            val tabs = channelInfo.tabs
+            val liveTab = tabs.find { it.identifier == ChannelTabs.LIVESTREAMS }
+            
+            if (liveTab != null) {
+                val extractor = service.getChannelTabExtractor(liveTab)
+                extractor.fetchPage()
+                val liveItems = extractor.initialPage().items
+                    .filterIsInstance<StreamInfoItem>()
+                
+                if (liveItems.isNotEmpty()) {
+                    return liveItems.take(10).map { item ->
+                        val videoId = item.url.substringAfter("v=").substringBefore("&")
+                        mapOf(
+                            "id" to videoId,
+                            "title" to item.name,
+                            "thumbnail" to (item.thumbnails.firstOrNull()?.url ?: ""),
+                            "url" to item.url,
+                            "duration" to 0,
+                            "isLive" to true
+                        )
+                    }
+                }
+            }
+            
+            // Fallback to latest videos if no live streams
+            val videosTab = tabs.find { it.identifier == ChannelTabs.VIDEOS }
+                ?: tabs.firstOrNull()
+            
+            if (videosTab != null) {
+                val extractor = service.getChannelTabExtractor(videosTab)
+                extractor.fetchPage()
+                val videoItems = extractor.initialPage().items
+                    .filterIsInstance<StreamInfoItem>()
+                
+                return videoItems.take(10).map { item ->
+                    val videoId = item.url.substringAfter("v=").substringBefore("&")
+                    mapOf(
+                        "id" to videoId,
+                        "title" to item.name,
+                        "thumbnail" to (item.thumbnails.firstOrNull()?.url ?: ""),
+                        "url" to item.url,
+                        "duration" to (item.duration ?: 0),
+                        "isLive" to false
+                    )
+                }
+            }
+            
+            return emptyList()
+        } catch (e: Exception) {
+            return emptyList()
+        }
     }
 }

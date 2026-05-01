@@ -16,6 +16,7 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
   final _channelSearchController = TextEditingController();
   final _youtubeQueryController = TextEditingController();
   final _youtubeLinkController = TextEditingController();
+  final _youtubeChannelHandleController = TextEditingController();
   String _selectedAction = 'Aakashwani';
   bool _isListening = false;
   bool _isLoadingChannels = false;
@@ -63,6 +64,7 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
     _channelSearchController.dispose();
     _youtubeQueryController.dispose();
     _youtubeLinkController.dispose();
+    _youtubeChannelHandleController.dispose();
     _ttsService.stop();
     super.dispose();
   }
@@ -108,9 +110,17 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
       return;
     }
 
+    if (_selectedAction == 'YouTube Latest Live' && _youtubeChannelHandleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a YouTube channel name or @handle')),
+      );
+      return;
+    }
+
     String channelName = _selectedAction == 'Aakashwani' ? _channelSearchController.text : '';
     String? youtubeQuery = _selectedAction == 'YouTube Search' ? _youtubeQueryController.text : null;
     String? youtubeLink = _selectedAction == 'YouTube Play Link' ? _youtubeLinkController.text : null;
+    String? youtubeChannelHandle = _selectedAction == 'YouTube Latest Live' ? _youtubeChannelHandleController.text : null;
 
     final command = Command(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -119,6 +129,7 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
       channelName: channelName,
       youtubeQuery: youtubeQuery,
       youtubeLink: youtubeLink,
+      youtubeChannelHandle: youtubeChannelHandle,
     );
 
     await HiveService.addCommand(command);
@@ -224,6 +235,10 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
                   DropdownMenuItem(
                     value: 'YouTube Play Link',
                     child: Text('YouTube Play Link'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'YouTube Latest Live',
+                    child: Text('YouTube Latest Live'),
                   ),
                 ],
                 onChanged: (value) {
@@ -350,6 +365,32 @@ class _CommandCreateScreenState extends State<CommandCreateScreen> {
               const SizedBox(height: 10),
               const Text(
                 'Paste a YouTube video or playlist link. App will play video or queue all playlist videos.',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
+            if (_selectedAction == 'YouTube Latest Live') ...[
+              const Text(
+                'YouTube Channel Name or @Handle',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _youtubeChannelHandleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'e.g., @bbkivines or BB Ki Vines',
+                  hintStyle: const TextStyle(color: Colors.white30),
+                  filled: true,
+                  fillColor: const Color(0xFF16213E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Enter a YouTube channel name or @handle. App will find the latest live stream or latest video.',
                 style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],

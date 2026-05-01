@@ -229,6 +229,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           await _playYouTubeLink(command.youtubeLink!);
         }
         break;
+      case 'YouTube Latest Live':
+        if (command.youtubeChannelHandle != null && command.youtubeChannelHandle!.isNotEmpty) {
+          await _playChannelLatestLive(command.youtubeChannelHandle!);
+        }
+        break;
       default:
         await WebViewService.clickChannel(command.channelName);
     }
@@ -288,6 +293,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
     } else {
       await _flutterTts.speak('Could not load link');
+      if (mounted) {
+        setState(() {
+          _loadingStatus = '';
+          _isSearching = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _playChannelLatestLive(String channelInput) async {
+    if (!mounted) return;
+    
+    setState(() {
+      _loadingStatus = 'Finding latest live...';
+      _isSearching = true;
+      _searchResults = [];
+    });
+    
+    await _flutterTts.speak('Finding latest live from channel');
+    
+    final videos = await YouTubeService().getChannelLatestLive(channelInput);
+    
+    if (!mounted) return;
+    
+    if (videos.isNotEmpty) {
+      setState(() {
+        _searchResults = videos.map((v) => YouTubeItem(
+          id: v.id,
+          title: v.title,
+          thumbnail: v.thumbnail,
+          url: v.url,
+        )).toList();
+        _loadingStatus = 'Getting stream...';
+        _isSearching = false;
+      });
+      
+      await _playVideo(_searchResults.first);
+    } else {
+      await _flutterTts.speak('Could not find any videos from this channel');
       if (mounted) {
         setState(() {
           _loadingStatus = '';

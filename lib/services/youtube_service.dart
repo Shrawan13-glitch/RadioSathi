@@ -86,6 +86,33 @@ class YouTubeService {
     }
   }
 
+  Future<List<YouTubeResult>> getChannelLatestLive(String channelInput) async {
+    try {
+      AppLog.log('Getting latest live from channel: $channelInput');
+      final result = await _channel.invokeMethod('getChannelLatestLive', {'channelInput': channelInput});
+      
+      if (result is List) {
+        final items = result.map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return YouTubeResult(
+            id: map['id'] ?? '',
+            title: map['title'] ?? '',
+            thumbnail: map['thumbnail'] ?? '',
+            url: map['url'] ?? '',
+            duration: map['duration'] ?? 0,
+          );
+        }).toList();
+        
+        AppLog.log('Found ${items.length} videos from channel');
+        return items;
+      }
+      return [];
+    } on PlatformException catch (e) {
+      AppLog.log('Get channel latest live error: ${e.message}');
+      return [];
+    }
+  }
+
   static String? extractVideoId(String url) {
     if (url.isEmpty) return null;
     
