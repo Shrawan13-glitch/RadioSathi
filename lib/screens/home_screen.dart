@@ -771,6 +771,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
+            if (_isLoadingStream) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Loading stream...',
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+            ],
             const SizedBox(height: 4),
             Text(
               'Say "next" or "previous" to navigate queue',
@@ -884,30 +891,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    if (_isLoadingStream) {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: _containerColor,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: _accentColor),
-              const SizedBox(height: 20),
-              Text(
-                'Loading stream...',
-                style: TextStyle(color: Colors.white70, fontSize: 18),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
@@ -943,6 +926,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
+            if (_isLoadingStream) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Loading stream...',
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+            ],
           ],
           if (_searchResults.isNotEmpty) ...[
             const SizedBox(height: 20),
